@@ -1,9 +1,17 @@
 CC=gcc
+CFLAGS=-Wall
+LIBS=-lcyassl
 
-encrypt: encrypt.c
-	$(CC) -Wall -o encrypt encrypt.c -lcyassl
+exc: enc.o encrypt.o
+	$(CC) -o encrypt encrypt.o enc.o
+
+encrypt: encrypt.o
+	$(CC) -c $@ $^ $(CFLAGS) $(LIBS)
+
+enc: enc.o
+	$(CC) -c $@ $^ $(CFLAGS) $(LIBS)
 
 .PHONY: clean
 
 clean:
-	rm -f encrypt
+	rm -f encrypt *.o

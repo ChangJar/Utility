@@ -18,52 +18,115 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,USA
  */
 
-#include <stdio.h>
-#include <unistd.h>
-#include <termios.h>
-#include <cyassl/options.h>
-#include <cyassl/ctaocrypt/sha256.h>
-#include <cyassl/ctaocrypt/random.h>
-#include <cyassl/ctaocrypt/pwdbased.h>
+#include "enc.h"
 
-int main(int argc, char** argv)
+int NoEcho(char* key, int size)
 {
-    const   char* in;
-    const   char* out;
-    byte*   key;
-    byte*   iv;
+    struct termios oflags, nflags;
 
-    argc--;
-    argv++;
-    while (argc > 0) {
-        if (strcmp(*argv, "-i") == 0) {
-            in = *(++argv);
-            argc--;
-printf("%s\n", in);
-        }
-        else if (strcmp(*argv, "-o") == 0) {
-            out = *(++argv);
-            argc--;
-printf("%s\n", out);
-        }
-        else if (strcmp(*argv, "-k") == 0) {
-            key = *(++argv);
-            argc--;
-printf("%s\n", key);
-        }
-        else if (strcmp(*argv, "-iv") == 0) {
-            iv = *(++argv);
-            argc--;
-printf("%s\n", iv);
-        }
-        else {
-            printf("invalid argument %s\n", *argv);
-            break;
-        }
-        argc--;
-        argv++;
+    /* disabling echo */
+    tcgetattr(fileno(stdin), &oflags);
+    nflags = oflags;
+    nflags.c_lflag &= ~ECHO;
+    nflags.c_lflag |= ECHONL;
+
+    if (tcsetattr(fileno(stdin), TCSANOW, &nflags) != 0) {
+        printf("Error\n");
+        return -1060;
+    }
+
+    printf("Key: ");
+    fgets(key, size, stdin);
+    key[strlen(key) - 1] = 0;
+
+    /* restore terminal */
+    if (tcsetattr(fileno(stdin), TCSANOW, &oflags) != 0) {
+        printf("Error\n");
+        return -1070;
     }
     return 0;
 }
 
-/******************************NEED HEADERFILE THAT INCLUDES ALL CRYPTO OPTIONS***************************************/
+int main(int argc, char** argv)
+{
+    char*   name = NULL;
+    char*   in = NULL;
+    char*   out = NULL;
+    byte*   key = NULL;
+    byte*   iv = NULL;
+    char    sz[3] = {0};
+    int     size = 0;
+    int     i = 0;
+    int     j = 0;
+    int     ret = 0;
+    int     block = 0;
+
+    
+    name = argv[1];
+    block = GetAlgorithm(name);
+
+    if (block != -1) {
+        i = strlen(name)-3;
+        while (i < strlen(name)) { /* sets the last characters of name to sz */
+            sz[j] = name[i];
+            i++;
+            j++;
+        }
+
+        size = atoi(sz);           /* sets size from the numbers of sz */
+        if (size == 0) {
+            printf("Invalid Size.\n");
+            return -1;
+        } 
+        argc-=2;
+        argv+=2;
+
+        while (argc > 0) {          /* reads all arguments in command line */
+            if (strcmp(*argv, "-i") == 0) {
+                in = *(++argv);
+                argc--;
+            }
+
+            else if (strcmp(*argv, "-o") == 0) {
+                out = *(++argv);
+                argc--;
+            }
+
+            else if (strcmp(*argv, "-k") == 0) {
+                key = malloc(size); 
+
+                if (argc != 1 && strcmp(*(argv+1), "-i") != 0 && strcmp(
+                    *(argv+1), "-o") != 0 && strcmp(*(argv+1), "-iv") != 0) {
+                    memcpy(key, *(++argv), size);
+                    argc--;
+                }
+                else {
+                    ret = NoEcho((char*)key, size);
+                }
+            }
+
+            else if (strcmp(*argv, "-iv") == 0) {
+                iv = malloc(block);
+                memcpy(iv, *(++argv), block);
+                argc--;
+            }
+
+            else {
+                printf("invalid argument %s\n", *argv);
+                break;
+            }
+            argc--;
+            argv++;   
+        }
+    }
+    else {
+        printf("Invalid Algorithm Name: %s\n", name);
+        return -1;
+    }
+
+    ret = Encrypt(name, key, size, in, out, iv);
+
+    free(key);
+    free(iv);
+    return ret;
+}
