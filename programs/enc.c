@@ -50,6 +50,10 @@ int GenerateKey(RNG* rng, byte* key, int size, byte* salt, int pad)
 
 int Encrypt(char* name, byte* key, int size, char* in, char* out, byte* iv)
 {
+	Aes aes;
+	Des3 des3;
+	Camellia camellia;
+
 	FILE*  inFile;
     FILE*  outFile;
 	int block = GetAlgorithm(name);;
@@ -64,16 +68,6 @@ int Encrypt(char* name, byte* key, int size, char* in, char* out, byte* iv)
     int     inputLength;
     int     length;
     int     padCounter = 0;
-
-	if (strcmp(type, "aes") == 0) {
-		Aes enc;
-	}
-	if (strcmp(type, "3des") == 0) {
-		Des3 enc;
-	}
-	if (strcmp(type, "camellia") == 0){
-		Camellia enc;
-	}
 
 	inFile = fopen(in, "r");
 	outFile = fopen(out, "w");
@@ -116,27 +110,27 @@ int Encrypt(char* name, byte* key, int size, char* in, char* out, byte* iv)
 
     /* sets key encrypts the message to ouput from input length + padding */
     if (strcmp(type, "aes") == 0) {
-		ret = AesSetKey(enc, key, AES_BLOCK_SIZE, iv, AES_ENCRYPTION);
+		ret = AesSetKey(&aes, key, AES_BLOCK_SIZE, iv, AES_ENCRYPTION);
 	    if (ret != 0)
 	        return -1001;
-	    ret = AesCbcEncrypt(enc, output, input, length);
+	    ret = AesCbcEncrypt(&aes, output, input, length);
 	    if (ret != 0)
 	        return -1005;
 	}
 	if (strcmp(type, "3des") == 0) {
-		ret = Des3_SetKey(enc, key, iv, DES_DECRYPTION);
+		ret = Des3_SetKey(&des3, key, iv, DES_DECRYPTION);
 	    if (ret != 0)
 	        return -1002;
-	    ret = Des3_CbcEncrypt(enc, output, input, length);
+	    ret = Des3_CbcEncrypt(&des3, output, input, length);
 	    if (ret != 0)
 	        return -1005;
 	}
 	if (strcmp(type, "camellia") == 0){
-	    ret = CamelliaSetKey(enc, key, block, iv);
+	    ret = CamelliaSetKey(&camellia, key, block, iv);
 	    if (ret != 0)
 	        return -1001;
 	    /* encrypts the message to the ouput based on input length + padding */
-	    CamelliaCbcEncrypt(enc, output, input, length);
+	    CamelliaCbcEncrypt(&camellia, output, input, length);
 	}
 
     /* writes to outFile */
