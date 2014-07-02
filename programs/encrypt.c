@@ -18,34 +18,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,USA
  */
 
-#include "enc.h"
-
-int NoEcho(char* key, int size)
-{
-    struct termios oflags, nflags;
-
-    /* disabling echo */
-    tcgetattr(fileno(stdin), &oflags);
-    nflags = oflags;
-    nflags.c_lflag &= ~ECHO;
-    nflags.c_lflag |= ECHONL;
-
-    if (tcsetattr(fileno(stdin), TCSANOW, &nflags) != 0) {
-        printf("Error\n");
-        return -1060;
-    }
-
-    printf("Key: ");
-    fgets(key, size, stdin);
-    key[strlen(key) - 1] = 0;
-
-    /* restore terminal */
-    if (tcsetattr(fileno(stdin), TCSANOW, &oflags) != 0) {
-        printf("Error\n");
-        return -1070;
-    }
-    return 0;
-}
+#include "util.h"
 
 int main(int argc, char** argv)
 {
@@ -54,47 +27,46 @@ int main(int argc, char** argv)
     char*   out = '\0';
     byte*   key = '\0';
     byte*   iv = '\0';
-    char    sz[3] = {1};
+
+    char    outName[256] = "encrypted";
     int     size = 0;
     int     i = 0;
-    int     j = 0;
     int     ret = 0;
     int     block = 0;
+    int     keyCheck = 0;
+    int     outCheck = 0;
+    int     inCheck = 0;
+    int     mark = 0;
 
     name = argv[1];
-    block = GetAlgorithm(name);
+    block = GetAlgorithm(name, &size);
 
     if (block != -1) {
-        i = strlen(name)-3;
-        while(i <= strlen(name)) { /* sets the last characters of name to sz */
-            sz[j] = name[i];
-            i++;
-            j++;
-        } 
-        size = atoi(sz);           /* sets size from the numbers of sz */
         key = malloc(size);        /* saves memory for entered keysize */
         iv = malloc(block);        /* saves memory for block size */
         memset(iv, 0, block);      /* sets all iv memory to 0 */
-        if (size == 0) {
-            printf("Invalid Size.\n");
-            return -1;
-        } 
+        
         argc-=2;
         argv+=2;
 
         while (argc > 0) {          /* reads all arguments in command line */
             if (strcmp(*argv, "-i") == 0) {
+                inCheck = 1;
                 in = *(++argv);
                 argc--;
             }
 
             else if (strcmp(*argv, "-o") == 0) {
-                out = *(++argv);
-                argc--;
+                if (argc != 1 && strcmp(*(argv+1), "-i") != 0 && strcmp(
+                    *(argv+1), "-k") != 0 && strcmp(*(argv+1), "-iv") != 0) {
+                    outCheck = 1;
+                    out = *(++argv);
+                    argc--;
+                }
             }
 
             else if (strcmp(*argv, "-k") == 0) {
-
+                keyCheck = 1;
                 if (argc != 1 && strcmp(*(argv+1), "-i") != 0 && strcmp(
                     *(argv+1), "-o") != 0 && strcmp(*(argv+1), "-iv") != 0) {
                     memcpy(key, *(++argv), size);
@@ -122,7 +94,22 @@ int main(int argc, char** argv)
         printf("Invalid Algorithm Name: %s\n", name);
         return -1;
     }
-    ret = Encrypt(name, key, size, in, out, iv);
+    if (keyCheck == 1 && inCheck == 1) {
+        if (outCheck == 0) 
+        {
+            out = outName;
+            for (i = 0; i < strlen(in); i++) {
+                if ((in[i] == '.') || (mark == 1)) {
+                    mark = 1;
+                    append(out, in[i]);
+                }
+            }
+        }
+        ret = Encrypt(name, key, size, in, out, iv, block);
+    }
+    else {
+        printf("Must have input and key\n");
+    }
 
     free(key);
     free(iv);
