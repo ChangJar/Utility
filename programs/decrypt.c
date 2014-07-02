@@ -1,4 +1,4 @@
-/* encrypt.c
+/* decrypt.c
  *
  * Copyright (C) 2006-2014 wolfSSL Inc.
  * This file is part of CyaSSL.
@@ -28,7 +28,7 @@ int main(int argc, char** argv)
     byte*   key;
     byte*   iv;
 
-    char    outName[256] = "encrypted";
+    char    outName[256] = "decrypted";
     int     size = 0;
     int     i = 0;
     int     ret = 0;
@@ -102,7 +102,7 @@ int main(int argc, char** argv)
                 append(out, in[i]);
             }
         }
-        ret = Encrypt(name, key, size, in, out, iv, block);
+        ret = Decrypt(name, key, size, in, out, iv, block);
     }
     else {
         printf("Must have input as either a file or standard I/O\n");

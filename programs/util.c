@@ -25,6 +25,53 @@
 
 char* type;
 
+int GetAlgorithm(char* name, int* size)
+{
+	int 	ret;
+    char    sz[3] = {1};
+    int 	i = 0;
+    int 	j = 0;
+
+    i = strlen(name)-3;
+    while(i <= strlen(name)) { /* sets the last characters of name to sz */
+        sz[j] = name[i];
+        i++;
+        j++;
+    } 
+    *size = atoi(sz);           /* sets size from the numbers of sz */
+
+	if (strncmp(name, "-aes", 4) == 0) {
+		ret =  AES_BLOCK_SIZE;
+		type = "aes";
+		if (*size != 128 && *size != 192 && *size != 256) {
+	        /* if the entered size does not match acceptable size */
+	        printf("Invalid AES key size\n");
+	        ret = -1080;
+	    }
+	}
+	else if (strncmp(name, "-3des", 5) == 0) {
+		ret =  DES3_BLOCK_SIZE;
+		type = "3des";
+		if (*size != 56 && *size != 112 && *size != 168) {
+	        /* if the entered size does not match acceptable size */
+	        printf("Invalid 3DES key size\n");
+	        ret = -1080;
+	    }
+	}
+	else if (strncmp(name, "-camellia", 6) == 0) {
+		ret =  CAMELLIA_BLOCK_SIZE;
+		type = "camellia";
+		if (*size != 128 && *size != 192 && *size != 256) {
+	        /* if the entered size does not match acceptable size */
+	        printf("Invalid Camellia key size\n");
+	        ret = -1080;
+	    }
+	}
+	else {
+		ret =  -1;
+	}
+	return ret;
+}
 /*
  * Makes a cyptographically secure key by stretching a user entered key
  */
@@ -163,7 +210,7 @@ int Encrypt(char* name, byte* key, int size, char* in, char* out, byte* iv,
 	        return -1005;
 	}
 	if (strcmp(type, "3des") == 0) {
-		ret = Des3_SetKey(&des3, key, iv, DES_DECRYPTION);
+		ret = Des3_SetKey(&des3, key, iv, DES_ENCRYPTION);
 	    if (ret != 0)
 	        return -1002;
 	    ret = Des3_CbcEncrypt(&des3, output, input, length);
@@ -195,51 +242,106 @@ int Encrypt(char* name, byte* key, int size, char* in, char* out, byte* iv,
     fclose(outFile);
     return 0;
 }
-
-int GetAlgorithm(char* name, int* size)
+int Decrypt(char* name, byte* key, int size, char* in, char* out, byte* iv,
+		int block)
 {
-	int 	ret;
-    char    sz[3] = {1};
-    int 	i = 0;
-    int 	j = 0;
+	Aes aes;
+	Des3 des3;
+	Camellia camellia;
 
-    i = strlen(name)-3;
-    while(i <= strlen(name)) { /* sets the last characters of name to sz */
-        sz[j] = name[i];
-        i++;
-        j++;
-    } 
-    *size = atoi(sz);           /* sets size from the numbers of sz */
+	FILE*  inFile;
+    FILE*  outFile;
 
-	if (strncmp(name, "-aes", 4) == 0) {
-		ret =  AES_BLOCK_SIZE;
-		type = "aes";
-		if (*size != 128 && *size != 192 && *size != 256) {
-	        /* if the entered size does not match acceptable size */
-	        printf("Invalid AES key size\n");
-	        ret = -1080;
-	    }
+	RNG     rng;
+    byte*   input;
+    byte*   output;
+    byte    salt[SALT_SIZE] = {0};
+
+    int     i = 0;
+    int     ret = 0;
+    int     length;
+    int 	aSize = 0;
+
+    inFile = fopen(in, "r");
+    outFile = fopen(out, "w");
+
+    fseek(inFile, 0, SEEK_END);
+    length = ftell(inFile);
+    fseek(inFile, 0, SEEK_SET);
+    aSize = length;
+
+    input = malloc(aSize);
+    output = malloc(aSize);
+
+    InitRng(&rng);
+
+    /* reads from inFile and wrties whatever is there to the input array */
+    ret = fread(input, 1, length, inFile);
+    if (ret == 0) {
+        printf("Input file does not exist.\n");
+        return -1010;
+    }
+    for (i = 0; i < SALT_SIZE; i++) {
+        /* finds salt from input message */
+        salt[i] = input[i];
+    }
+    for (i = SALT_SIZE; i < block + SALT_SIZE; i++) {
+        /* finds iv from input message */
+        iv[i - SALT_SIZE] = input[i];
+    }
+
+    /* replicates old key if keys match */
+    ret = PBKDF2(key, key, strlen((const char*)key), salt, SALT_SIZE, 4096, 
+        size, SHA256);
+    if (ret != 0)
+        return -1050;
+
+	/* change length to remove salt/iv block from being decrypted */
+    length -= (block + SALT_SIZE);
+    for (i = 0; i < length; i++) {
+        /* shifts message: ignores salt/iv on message*/
+        input[i] = input[i + (block + SALT_SIZE)];
+    }
+    /* sets key decrypts the message to ouput from input length */
+    if (strcmp(type, "aes") == 0) {
+		ret = AesSetKey(&aes, key, AES_BLOCK_SIZE, iv, AES_DECRYPTION);
+	    if (ret != 0)
+	        return -1001;
+	    ret = AesCbcDecrypt(&aes, output, input, length);
+	    if (ret != 0)
+	        return -1005;
 	}
-	else if (strncmp(name, "-3des", 5) == 0) {
-		ret =  DES3_BLOCK_SIZE;
-		type = "3des";
-		if (*size != 56 && *size != 112 && *size != 168) {
-	        /* if the entered size does not match acceptable size */
-	        printf("Invalid 3DES key size\n");
-	        ret = -1080;
-	    }
+	if (strcmp(type, "3des") == 0) {
+		ret = Des3_SetKey(&des3, key, iv, DES_DECRYPTION);
+	    if (ret != 0)
+	        return -1002;
+	    ret = Des3_CbcDecrypt(&des3, output, input, length);
+	    if (ret != 0)
+	        return -1005;
 	}
-	else if (strncmp(name, "-camellia", 6) == 0) {
-		ret =  CAMELLIA_BLOCK_SIZE;
-		type = "camellia";
-		if (*size != 128 && *size != 192 && *size != 256) {
-	        /* if the entered size does not match acceptable size */
-	        printf("Invalid Camellia key size\n");
-	        ret = -1080;
-	    }
+	if (strcmp(type, "camellia") == 0) {
+	    ret = CamelliaSetKey(&camellia, key, block, iv);
+	    if (ret != 0)
+	        return -1001;
+	    /* encrypts the message to the ouput based on input length + padding */
+	    CamelliaCbcDecrypt(&camellia, output, input, length);
 	}
-	else {
-		ret =  -1;
-	}
-	return ret;
+
+    if (salt[0] != 0) {
+        /* reduces length based on number of padded elements  */
+        length -= output[length-1];
+    }
+    /* writes output to the outFile based on shortened length */
+    fwrite(output, 1, length, outFile);
+
+    /* closes the opened files and frees the memory*/
+    memset(input, 0, aSize);
+    memset(output, 0, aSize);
+    memset(key, 0, size);
+    free(input);
+    free(output);
+    fclose(inFile);
+    fclose(outFile);
+
+    return 0;
 }

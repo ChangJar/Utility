@@ -33,11 +33,13 @@
 #ifndef ENC_H_INCLUDED
 	#define ENC_H_INCLUDED
 
-	int Encrypt(char* name, byte* key, int size, char* in, char* out, byte* iv,
-		int block);
 	int GetAlgorithm(char* name, int* size);
 	int GenerateKey(RNG* rng, byte* key, int size, byte* salt, int pad);
 	int NoEcho(char* key, int size);
 	void append(char* s, char c);
+	int Encrypt(char* name, byte* key, int size, char* in, char* out, byte* iv,
+		int block);
+	int Decrypt(char* name, byte* key, int size, char* in, char* out, byte* iv,
+		int block);
 
 #endif
