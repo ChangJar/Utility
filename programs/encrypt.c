@@ -49,31 +49,32 @@ int NoEcho(char* key, int size)
 
 int main(int argc, char** argv)
 {
-    char*   name = NULL;
-    char*   in = NULL;
-    char*   out = NULL;
-    byte*   key = NULL;
-    byte*   iv = NULL;
-    char    sz[3] = {0};
+    char*   name = '\0';
+    char*   in = '\0';
+    char*   out = '\0';
+    byte*   key = '\0';
+    byte*   iv = '\0';
+    char    sz[3] = {1};
     int     size = 0;
     int     i = 0;
     int     j = 0;
     int     ret = 0;
     int     block = 0;
 
-    
     name = argv[1];
     block = GetAlgorithm(name);
 
     if (block != -1) {
         i = strlen(name)-3;
-        while (i < strlen(name)) { /* sets the last characters of name to sz */
+        while(i <= strlen(name)) { /* sets the last characters of name to sz */
             sz[j] = name[i];
             i++;
             j++;
-        }
-
+        } 
         size = atoi(sz);           /* sets size from the numbers of sz */
+        key = malloc(size);        /* saves memory for entered keysize */
+        iv = malloc(block);        /* saves memory for block size */
+        memset(iv, 0, block);      /* sets all iv memory to 0 */
         if (size == 0) {
             printf("Invalid Size.\n");
             return -1;
@@ -93,7 +94,6 @@ int main(int argc, char** argv)
             }
 
             else if (strcmp(*argv, "-k") == 0) {
-                key = malloc(size); 
 
                 if (argc != 1 && strcmp(*(argv+1), "-i") != 0 && strcmp(
                     *(argv+1), "-o") != 0 && strcmp(*(argv+1), "-iv") != 0) {
@@ -106,7 +106,6 @@ int main(int argc, char** argv)
             }
 
             else if (strcmp(*argv, "-iv") == 0) {
-                iv = malloc(block);
                 memcpy(iv, *(++argv), block);
                 argc--;
             }
@@ -123,7 +122,6 @@ int main(int argc, char** argv)
         printf("Invalid Algorithm Name: %s\n", name);
         return -1;
     }
-
     ret = Encrypt(name, key, size, in, out, iv);
 
     free(key);

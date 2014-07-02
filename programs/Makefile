@@ -2,16 +2,10 @@ CC=gcc
 CFLAGS=-Wall
 LIBS=-lcyassl
 
-exc: enc.o encrypt.o
-	$(CC) -o encrypt encrypt.o enc.o
-
-encrypt: encrypt.o
-	$(CC) -c $@ $^ $(CFLAGS) $(LIBS)
-
-enc: enc.o
-	$(CC) -c $@ $^ $(CFLAGS) $(LIBS)
+encrypt: enc.o encrypt.o
+	$(CC) -o $@ $^ $(CFLAGS) $(LIBS) 
 
 .PHONY: clean
 
 clean:
-	rm -f encrypt *.o
+	find . \! -name enc.c \! -name Makefile \! -name README.md \! -name enc.h \! -name encrypt.c -delete

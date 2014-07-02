@@ -26,7 +26,7 @@
 char* type;
 
 /*
- * Makes a cyptographically secure key by stretMDMching a user entered key
+ * Makes a cyptographically secure key by stretching a user entered key
  */
 int GenerateKey(RNG* rng, byte* key, int size, byte* salt, int pad)
 {
@@ -99,10 +99,11 @@ int Encrypt(char* name, byte* key, int size, char* in, char* out, byte* iv)
         input[i] = padCounter;
     }
 
-    ret = RNG_GenerateBlock(&rng, iv, block);
-    if (ret != 0)
-        return -1020;
-
+    if (iv && iv[0] == '\0') {
+    	ret = RNG_GenerateBlock(&rng, iv, block);
+    	if (ret != 0)
+        	return -1020;
+	}
     /* stretches key to fit size */
     ret = GenerateKey(&rng, key, size, salt, padCounter);
     if (ret != 0) 
@@ -125,7 +126,7 @@ int Encrypt(char* name, byte* key, int size, char* in, char* out, byte* iv)
 	    if (ret != 0)
 	        return -1005;
 	}
-	if (strcmp(type, "camellia") == 0){
+	if (strcmp(type, "camellia") == 0) {
 	    ret = CamelliaSetKey(&camellia, key, block, iv);
 	    if (ret != 0)
 	        return -1001;

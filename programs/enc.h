@@ -31,10 +31,10 @@
 #include <cyassl/ctaocrypt/camellia.h>
 
 #ifndef ENC_H_INCLUDED
-#define ENC_H_INCLUDED
+	#define ENC_H_INCLUDED
 
-int Encrypt(char* name, byte* key, int size, char* in, char* out, byte* iv);
-int GetAlgorithm(char* name);
-int GenerateKey(RNG* rng, byte* key, int size, byte* salt, int pad);
+	int Encrypt(char* name, byte* key, int size, char* in, char* out,byte* iv);
+	int GetAlgorithm(char* name);
+	int GenerateKey(RNG* rng, byte* key, int size, byte* salt, int pad);
 
 #endif
