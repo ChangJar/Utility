@@ -350,3 +350,72 @@ int Decrypt(char* alg, char* mode, byte* key, int size, char* in, char* out,
 
     return 0;
 }
+
+int Md5Hash(char* in, char* out)
+{
+    Md5 hash;
+    FILE*  inFile;
+    FILE*  outFile;
+
+    byte*   input;
+    byte*   output;
+
+    int length;
+    int ret;
+
+    InitMd5(&hash);
+
+    inFile = fopen(in, "r");
+    outFile = fopen(out, "w");
+
+printf("%s\n", in);
+    fseek(inFile, 0, SEEK_END);
+printf("%s\n", in);
+    length = ftell(inFile);
+    fseek(inFile, 0, SEEK_SET);
+    input = malloc(length);
+    output = malloc(MD5_DIGEST_SIZE);
+
+    ret = fread(input, 1, length, inFile);
+    if (ret == 0) {
+        printf("Input file does not exist.\n");
+        return -1010;
+    }
+
+    Md5Update(&hash, input, length);
+    Md5Final(&hash, output);
+
+    fwrite(output, 1, MD5_DIGEST_SIZE, outFile);
+
+    free(input);
+    free(output);
+    fclose(inFile);
+    fclose(outFile);
+
+    return ret;
+}
+
+int ShaHash(char* in, char* out)
+{
+    return 0;
+}
+
+int Sha256Hash(char* in, char* out)
+{
+    return 0;
+}
+
+int Sha384Hash(char* in, char* out)
+{
+    return 0;
+}
+
+int Sha512Hash(char* in, char* out)
+{
+    return 0;
+}
+
+int Blake2bHash(char* in, char* out)
+{
+    return 0;
+}

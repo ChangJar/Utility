@@ -23,8 +23,11 @@
 #include <unistd.h>
 #include <termios.h>
 #include <cyassl/options.h>
+#include <cyassl/ctaocrypt/sha.h>
 #include <cyassl/ctaocrypt/sha256.h>
+#include <cyassl/ctaocrypt/sha512.h>
 #include <cyassl/ctaocrypt/random.h>
+#include <cyassl/ctaocrypt/blake2.h>
 #include <cyassl/ctaocrypt/pwdbased.h>
 #include <cyassl/ctaocrypt/aes.h>
 #include <cyassl/ctaocrypt/des3.h>
@@ -41,5 +44,11 @@
 		char* out, byte* iv, int block);
 	int Decrypt(char* alg, char* mode, byte* key, int size, char* in, 
 		char* out, byte* iv, int block);
+	int Md5Hash(char* in, char* out);
+	int ShaHash(char* in, char* out);
+	int Sha256Hash(char* in, char* out);
+	int Sha384Hash(char* in, char* out);
+	int Sha512Hash(char* in, char* out);
+	int Blake2bHash(char* in, char* out);
 
 #endif
