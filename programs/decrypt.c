@@ -23,6 +23,8 @@
 int main(int argc, char** argv)
 {
     char*   name;
+    char*   alg;
+    char*   mode;
     char*   in;
     char*   out;
     byte*   key;
@@ -39,7 +41,7 @@ int main(int argc, char** argv)
     int     mark = 0;
 
     name = argv[1];
-    block = GetAlgorithm(name, &size);
+    block = GetAlgorithm(name, &alg, &mode, &size);
 
     if (block != -1) {
         key = malloc(size);        /* saves memory for entered keysize */
@@ -77,6 +79,11 @@ int main(int argc, char** argv)
             else if (strcmp(*argv, "-iv") == 0) {
                 memcpy(iv, *(++argv), block);
                 argc--;
+                if (strlen((const char*)iv) != block) {
+                    printf("Invalid IV. Must match algoritm block size.\n");
+                    printf("Randomly Generating IV.\n");
+                    memset(iv, 0, block);
+                }
             }
 
             else {
@@ -88,7 +95,6 @@ int main(int argc, char** argv)
         }
     }
     else {
-        printf("Invalid Algorithm Name: %s\n", name);
         return -1;
     }
     if (keyCheck != 1) {
@@ -99,10 +105,10 @@ int main(int argc, char** argv)
         for (i = 0; i < strlen(in); i++) {
             if ((in[i] == '.') || (mark == 1)) {
                 mark = 1;
-                append(out, in[i]);
+                Append(out, in[i]);
             }
         }
-        ret = Decrypt(name, key, size, in, out, iv, block);
+        ret = Decrypt(alg, mode, key, size, in, out, iv, block);
     }
     else {
         printf("Must have input as either a file or standard I/O\n");
