@@ -107,7 +107,8 @@ int main(int argc, char** argv)
             break;
 #endif
         default :
-        printf("Invalid selection \n");
+        printf("Invalid algorithm selection.\n");
+        printf("Are you sure this option has been configured?\n");
     }
 
     if (outCheck == 0)
