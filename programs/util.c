@@ -1,4 +1,4 @@
-/* enc.c
+/* util.c
  *
  * Copyright (C) 2006-2014 wolfSSL Inc.
  * This file is part of CyaSSL.
@@ -22,6 +22,12 @@
 
 #define SALT_SIZE 8
 #define DES3_BLOCK_SIZE 24
+
+#ifdef HAVE_BLAKE2
+
+#define BLAKE_DIGEST_SIZE 64
+
+#endif /* HAVE_BLAKE2 */
 
 int GetAlgorithm(char* name, char** alg, char** mode, int* size)
 {
@@ -48,6 +54,8 @@ int GetAlgorithm(char* name, char** alg, char** mode, int* size)
             ret = -1;
         }
 	}
+
+#ifdef HAVE_CAMELLIA
 	else if (strcmp(*alg, "camellia") == 0) {
 	    ret = CAMELLIA_BLOCK_SIZE;
         if (*size != 128 && *size != 192 && *size != 256) {
@@ -56,6 +64,8 @@ int GetAlgorithm(char* name, char** alg, char** mode, int* size)
             ret = -1;
         }
 	}
+#endif
+
 	else {
 		printf("Invalid algorithm: %s\n", *alg);
 		ret = -1;
@@ -67,6 +77,7 @@ int GetAlgorithm(char* name, char** alg, char** mode, int* size)
     }
 	return ret;
 }
+
 /*
  * Makes a cyptographically secure key by stretching a user entered key
  */
@@ -129,8 +140,10 @@ int Encrypt(char* alg, char* mode, byte* key, int size, char* in, char* out,
 {
 	Aes aes;
 	Des3 des3;
-	Camellia camellia;
 
+#ifdef HAVE_CAMELLIA
+	Camellia camellia;
+#endif
 	FILE*  inFile;
     FILE*  outFile;
 
@@ -215,12 +228,15 @@ int Encrypt(char* alg, char* mode, byte* key, int size, char* in, char* out,
 	    if (ret != 0)
 	        return -1005;
 	}
+
+#ifdef HAVE_CAMELLIA
 	if (strcmp(alg, "camellia") == 0) {
 	    ret = CamelliaSetKey(&camellia, key, block, iv);
 	    if (ret != 0)
 	        return -1001;
 	    CamelliaCbcEncrypt(&camellia, output, input, length);
 	}
+#endif /* HAVE_CAMELLIA */
 
     /* writes to outFile */
     fwrite(salt, 1, SALT_SIZE, outFile);
@@ -241,12 +257,16 @@ int Encrypt(char* alg, char* mode, byte* key, int size, char* in, char* out,
     fclose(outFile);
     return 0;
 }
+
 int Decrypt(char* alg, char* mode, byte* key, int size, char* in, char* out, 
 	byte* iv, int block)
 {
 	Aes aes;
 	Des3 des3;
+
+#ifdef HAVE_CAMELLIA
 	Camellia camellia;
+#endif
 
 	FILE*  inFile;
     FILE*  outFile;
@@ -324,6 +344,8 @@ int Decrypt(char* alg, char* mode, byte* key, int size, char* in, char* out,
 	    if (ret != 0)
 	        return -1005;
 	}
+
+#ifdef HAVE_CAMELLIA
 	if (strcmp(alg, "camellia") == 0) {
 	    ret = CamelliaSetKey(&camellia, key, block, iv);
 	    if (ret != 0)
@@ -331,6 +353,7 @@ int Decrypt(char* alg, char* mode, byte* key, int size, char* in, char* out,
 	    /* encrypts the message to the ouput based on input length + padding */
 	    CamelliaCbcDecrypt(&camellia, output, input, length);
 	}
+#endif /* HAVE_CAMELLIA */
 
     if (salt[0] != 0) {
         /* reduces length based on number of padded elements  */
@@ -351,6 +374,7 @@ int Decrypt(char* alg, char* mode, byte* key, int size, char* in, char* out,
     return 0;
 }
 
+#ifndef NO_MD5
 int Md5Hash(char* in, char* out)
 {
     Md5 hash;
@@ -368,9 +392,7 @@ int Md5Hash(char* in, char* out)
     inFile = fopen(in, "r");
     outFile = fopen(out, "w");
 
-printf("%s\n", in);
     fseek(inFile, 0, SEEK_END);
-printf("%s\n", in);
     length = ftell(inFile);
     fseek(inFile, 0, SEEK_SET);
     input = malloc(length);
@@ -394,28 +416,225 @@ printf("%s\n", in);
 
     return ret;
 }
+#endif /* NO_MD5 */
 
+#ifndef NO_SHA
 int ShaHash(char* in, char* out)
 {
-    return 0;
-}
+    Sha hash;
+    FILE*  inFile;
+    FILE*  outFile;
 
+    byte*   input;
+    byte*   output;
+
+    int length;
+    int ret;
+
+    InitSha(&hash);
+
+    inFile = fopen(in, "r");
+    outFile = fopen(out, "w");
+
+    fseek(inFile, 0, SEEK_END);
+    length = ftell(inFile);
+    fseek(inFile, 0, SEEK_SET);
+    input = malloc(length);
+    output = malloc(SHA_DIGEST_SIZE);
+
+    ret = fread(input, 1, length, inFile);
+    if (ret == 0) {
+        printf("Input file does not exist.\n");
+        return -1010;
+    }
+
+    ShaUpdate(&hash, input, length);
+    ShaFinal(&hash, output);
+
+    fwrite(output, 1, SHA_DIGEST_SIZE, outFile);
+
+    free(input);
+    free(output);
+    fclose(inFile);
+    fclose(outFile);
+
+    return ret;
+}
+#endif /* NO_SHA */
+
+#ifndef NO_SHA256
 int Sha256Hash(char* in, char* out)
 {
-    return 0;
-}
+    Sha256 hash;
+    FILE*  inFile;
+    FILE*  outFile;
 
+    byte*   input;
+    byte*   output;
+
+    int length;
+    int ret;
+
+    InitSha256(&hash);
+
+    inFile = fopen(in, "r");
+    outFile = fopen(out, "w");
+
+    fseek(inFile, 0, SEEK_END);
+    length = ftell(inFile);
+    fseek(inFile, 0, SEEK_SET);
+    input = malloc(length);
+    output = malloc(SHA256_DIGEST_SIZE);
+
+    ret = fread(input, 1, length, inFile);
+    if (ret == 0) {
+        printf("Input file does not exist.\n");
+        return -1010;
+    }
+
+    Sha256Update(&hash, input, length);
+    Sha256Final(&hash, output);
+
+    fwrite(output, 1, SHA256_DIGEST_SIZE, outFile);
+
+    free(input);
+    free(output);
+    fclose(inFile);
+    fclose(outFile);
+
+    return ret;
+}
+#endif /* NO_SHA256 */
+
+#ifdef CYASSL_SHA384
 int Sha384Hash(char* in, char* out)
 {
-    return 0;
-}
+    Sha384 hash;
+    FILE*  inFile;
+    FILE*  outFile;
 
+    byte*   input;
+    byte*   output;
+
+    int length;
+    int ret;
+
+    InitSha384(&hash);
+
+    inFile = fopen(in, "r");
+    outFile = fopen(out, "w");
+
+    fseek(inFile, 0, SEEK_END);
+    length = ftell(inFile);
+    fseek(inFile, 0, SEEK_SET);
+    input = malloc(length);
+    output = malloc(SHA384_DIGEST_SIZE);
+
+    ret = fread(input, 1, length, inFile);
+    if (ret == 0) {
+        printf("Input file does not exist.\n");
+        return -1010;
+    }
+
+    Sha384Update(&hash, input, length);
+    Sha384Final(&hash, output);
+
+    fwrite(output, 1, SHA384_DIGEST_SIZE, outFile);
+
+    free(input);
+    free(output);
+    fclose(inFile);
+    fclose(outFile);
+
+    return ret;
+}
+#endif /* CYASSL_SHA384 */
+
+#ifdef CYASSL_SHA512
 int Sha512Hash(char* in, char* out)
 {
-    return 0;
-}
+    Sha512 hash;
+    FILE*  inFile;
+    FILE*  outFile;
 
+    byte*   input;
+    byte*   output;
+
+    int length;
+    int ret;
+
+    InitSha512(&hash);
+
+    inFile = fopen(in, "r");
+    outFile = fopen(out, "w");
+
+    fseek(inFile, 0, SEEK_END);
+    length = ftell(inFile);
+    fseek(inFile, 0, SEEK_SET);
+    input = malloc(length);
+    output = malloc(SHA512_DIGEST_SIZE);
+
+    ret = fread(input, 1, length, inFile);
+    if (ret == 0) {
+        printf("Input file does not exist.\n");
+        return -1010;
+    }
+
+    Sha512Update(&hash, input, length);
+    Sha512Final(&hash, output);
+
+    fwrite(output, 1, SHA512_DIGEST_SIZE, outFile);
+
+    free(input);
+    free(output);
+    fclose(inFile);
+    fclose(outFile);
+
+    return ret;
+}
+#endif /* CYASSL_SHA512 */
+
+#ifdef HAVE_BLAKE2
 int Blake2bHash(char* in, char* out)
 {
-    return 0;
+    Blake2b hash;
+    FILE*  inFile;
+    FILE*  outFile;
+
+    byte*   input;
+    byte*   output;
+
+    int length;
+    int ret;
+
+    InitBlake2b(&hash, BLAKE_DIGEST_SIZE);
+
+    inFile = fopen(in, "r");
+    outFile = fopen(out, "w");
+
+    fseek(inFile, 0, SEEK_END);
+    length = ftell(inFile);
+    fseek(inFile, 0, SEEK_SET);
+    input = malloc(length);
+    output = malloc(BLAKE_DIGEST_SIZE);
+
+    ret = fread(input, 1, length, inFile);
+    if (ret == 0) {
+        printf("Input file does not exist.\n");
+        return -1010;
+    }
+
+    Blake2bUpdate(&hash, input, length);
+    Blake2bFinal(&hash, output, BLAKE_DIGEST_SIZE);
+
+    fwrite(output, 1, SHA384_DIGEST_SIZE, outFile);
+
+    free(input);
+    free(output);
+    fclose(inFile);
+    fclose(outFile);
+
+    return ret;
 }
+#endif /* HAVE_BLAKE2 */
+

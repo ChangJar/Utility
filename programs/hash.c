@@ -71,24 +71,43 @@ int main(int argc, char** argv)
         return -1;
     }
 	switch(num) {
+#ifndef NO_MD5
         case 0:
         Md5Hash(in, out);
             break;
+#endif
+
+#ifndef NO_SHA
         case 1:
         ShaHash(in, out);
             break;
+#endif
+
+#ifndef NO_SHA256
         case 2:
         Sha256Hash(in, out);
             break;
+#endif
+
+#ifdef CYASSL_SHA384
         case 3:
         Sha384Hash(in, out);
             break;
+#endif
+
+#ifdef CYASSL_SHA512
         case 4:
         Sha512Hash(in, out);
             break;
+#endif
+
+#ifdef HAVE_BLAKE2
         case 5:
         Blake2bHash(in, out);
             break;
+#endif
+        default :
+        printf("Invalid selection \n");
     }
 
     if (outCheck == 0)
