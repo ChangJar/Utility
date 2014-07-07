@@ -32,7 +32,12 @@ int main(int argc, char** argv)
 	int inCheck = 0;
 	int outCheck = 0;
 
-	for (i = 0; i < 6; i++) {
+	if (argc < 2) {
+        printf("Usage: cyassl hash <-algorithm> <-i filename> [-o filename]\n");
+        return -1;
+    }
+    
+    for (i = 0; i < 6; i++) {
 		if (strcmp(argv[1], algs[i]) == 0) {
 			alg = argv[1];
 			num = i;
