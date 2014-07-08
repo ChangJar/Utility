@@ -32,6 +32,330 @@
 int loop = 1;
 int64_t blocks;
 
+int Enc(int argc, char** argv)
+{
+    char*   name;
+    char*   alg;
+    char*   mode;
+    char*   in;
+    char*   out;
+    byte*   key;
+    byte*   iv;
+
+    char    outName[256] = "encrypted";
+    int     size = 0;
+    int     i = 0;
+    int     ret = 0;
+    int     block = 0;
+    int     keyCheck = 0;
+    int     outCheck = 0;
+    int     inCheck = 0;
+    int     mark = 0;
+
+    if (argc < 3) {
+        printf("USAGE: cyassl encrypt <-algorithm> <-i filename> ");
+        printf("[-o filename] [-k password] [-iv IV]\n");
+    }
+    
+    name = argv[2];
+    block = GetAlgorithm(name, &alg, &mode, &size);
+
+    if (block != -1) {
+        key = malloc(size);        /* saves memory for entered keysize */
+        iv = malloc(block);        /* saves memory for block size */
+        memset(iv, 0, block);      /* sets all iv memory to 0 */
+        
+        argc-=3;
+        argv+=3;
+
+        while (argc > 0) {          /* reads all arguments in command line */
+            if (strcmp(*argv, "-i") == 0) {
+                inCheck = 1;
+                in = *(++argv);
+                argc--;
+            }
+
+            else if (strcmp(*argv, "-o") == 0) {
+                if (argc != 1 && strcmp(*(argv+1), "-i") != 0 && strcmp(
+                    *(argv+1), "-k") != 0 && strcmp(*(argv+1), "-iv") != 0) {
+                    outCheck = 1;
+                    out = *(++argv);
+                    argc--;
+                }
+            }
+
+            else if (strcmp(*argv, "-k") == 0) {
+                if (argc != 1 && strcmp(*(argv+1), "-i") != 0 && strcmp(
+                    *(argv+1), "-o") != 0 && strcmp(*(argv+1), "-iv") != 0) {
+                    keyCheck = 1;
+                    memcpy(key, *(++argv), size);
+                    argc--;
+                }
+            }
+
+            else if (strcmp(*argv, "-iv") == 0) {
+                memcpy(iv, *(++argv), block);
+                argc--;
+                if (strlen((const char*)iv) != block) {
+                    printf("Invalid IV. Must match algoritm block size.\n");
+                    printf("Randomly Generating IV.\n");
+                    memset(iv, 0, block);
+                }
+            }
+
+            else {
+                printf("invalid argument %s\n", *argv);
+                break;
+            }
+            argc--;
+            argv++;   
+        }
+    }
+    else {
+        return -1;
+    }
+    if (keyCheck != 1) {
+        ret = NoEcho((char*)key, size);
+    }
+    if (inCheck == 1 && outCheck == 0) {
+        out = outName;
+        for (i = 0; i < strlen(in); i++) {
+            if ((in[i] == '.') || (mark == 1)) {
+                mark = 1;
+                Append(out, in[i]);
+            }
+        }
+        ret = Encrypt(alg, mode, key, size, in, out, iv, block);
+    }
+    else {
+        printf("Must have input as either a file or standard I/O\n");
+    }
+
+    free(key);
+    free(iv);
+    return ret;
+}
+
+int Dec(int argc, char** argv)
+{
+    char*   name;
+    char*   alg;
+    char*   mode;
+    char*   in;
+    char*   out;
+    byte*   key;
+    byte*   iv;
+
+    char    outName[256] = "decrypted";
+    int     size = 0;
+    int     i = 0;
+    int     ret = 0;
+    int     block = 0;
+    int     keyCheck = 0;
+    int     outCheck = 0;
+    int     inCheck = 0;
+    int     mark = 0;
+
+    if (argc < 3) {
+        printf("USAGE: cyassl decrypt <-algorithm> <-i filename> ");
+        printf("[-o filename] [-k password] [-iv IV]\n");
+    }
+ 
+    name = argv[2];
+    block = GetAlgorithm(name, &alg, &mode, &size);
+
+    if (block != -1) {
+        key = malloc(size);        /* saves memory for entered keysize */
+        iv = malloc(block);        /* saves memory for block size */
+        memset(iv, 0, block);      /* sets all iv memory to 0 */
+        
+        argc-=3;
+        argv+=3;
+
+        while (argc > 0) {          /* reads all arguments in command line */
+            if (strcmp(*argv, "-i") == 0) {
+                inCheck = 1;
+                in = *(++argv);
+                argc--;
+            }
+
+            else if (strcmp(*argv, "-o") == 0) {
+                if (argc != 1 && strcmp(*(argv+1), "-i") != 0 && strcmp(
+                    *(argv+1), "-k") != 0 && strcmp(*(argv+1), "-iv") != 0) {
+                    outCheck = 1;
+                    out = *(++argv);
+                    argc--;
+                }
+            }
+
+            else if (strcmp(*argv, "-k") == 0) {
+                if (argc != 1 && strcmp(*(argv+1), "-i") != 0 && strcmp(
+                    *(argv+1), "-o") != 0 && strcmp(*(argv+1), "-iv") != 0) {
+                    keyCheck = 1;
+                    memcpy(key, *(++argv), size);
+                    argc--;
+                }
+            }
+
+            else if (strcmp(*argv, "-iv") == 0) {
+                memcpy(iv, *(++argv), block);
+                argc--;
+                if (strlen((const char*)iv) != block) {
+                    printf("Invalid IV. Must match algoritm block size.\n");
+                    printf("Randomly Generating IV.\n");
+                    memset(iv, 0, block);
+                }
+            }
+
+            else {
+                printf("invalid argument %s\n", *argv);
+                break;
+            }
+            argc--;
+            argv++;   
+        }
+    }
+    else {
+        return -1;
+    }
+    if (keyCheck != 1) {
+        ret = NoEcho((char*)key, size);
+    }
+    if (inCheck == 1 && outCheck == 0) {
+        out = outName;
+        for (i = 0; i < strlen(in); i++) {
+            if ((in[i] == '.') || (mark == 1)) {
+                mark = 1;
+                Append(out, in[i]);
+            }
+        }
+        ret = Decrypt(alg, mode, key, size, in, out, iv, block);
+    }
+    else {
+        printf("Must have input as either a file or standard I/O\n");
+    }
+
+    free(key);
+    free(iv);
+    return ret;
+}
+
+int Has(int argc, char** argv)
+{
+	int ret = 0;
+	int i = 0;
+    char*   in = 0;
+    char*   out = 0;
+	char* algs[] = {"-md5","-sha","-sha256","-sha384","-sha512","-blake2b"};
+	char* alg;
+	int num = -1;
+	int inCheck = 0;
+	int outCheck = 0;
+
+	if (argc < 4) {
+        printf("Usage: cyassl hash <-algorithm> <-i filename> [-o filename]\n");
+        return -1;
+    }
+    
+    for (i = 0; i < 6; i++) {
+		if (strcmp(argv[2], algs[i]) == 0) {
+			alg = argv[2];
+			num = i;
+		}
+	}
+	if (num < 0) {
+		printf("Invalid algorithm\n");
+		return -1;
+	}
+	argc-=3;
+    argv+=3;
+
+	while (argc > 0) {          /* reads all arguments in command line */
+	    if (strcmp(*argv, "-i") == 0) {
+	    	inCheck = 1;
+	        in = *(++argv);
+	        argc--;
+	    }
+
+	    else if (strcmp(*argv, "-o") == 0) {
+        	outCheck = 1;
+            out = *(++argv);
+            argc--;
+	    }
+	    argc--;
+	}
+    if (inCheck == 1 && outCheck == 0) {
+    	out = malloc(strlen(in) + 1 + strlen(alg));
+        alg = strtok(alg, "-");
+        strcpy(out, in);
+        strcat(out, ".");
+        strcat(out, alg);
+    }
+    else if (inCheck == 0) {
+        printf("Must have input as either a file or standard I/O\n");
+        return -1;
+    }
+	switch(num) {
+#ifndef NO_MD5
+        case 0:
+        Md5Hash(in, out);
+            break;
+#endif
+
+#ifndef NO_SHA
+        case 1:
+        ShaHash(in, out);
+            break;
+#endif
+
+#ifndef NO_SHA256
+        case 2:
+        Sha256Hash(in, out);
+            break;
+#endif
+
+#ifdef CYASSL_SHA384
+        case 3:
+        Sha384Hash(in, out);
+            break;
+#endif
+
+#ifdef CYASSL_SHA512
+        case 4:
+        Sha512Hash(in, out);
+            break;
+#endif
+
+#ifdef HAVE_BLAKE2
+        case 5:
+        Blake2bHash(in, out);
+            break;
+#endif
+        default :
+        printf("Invalid algorithm selection.\n");
+        printf("Are you sure this option has been configured?\n");
+    }
+
+    if (outCheck == 0)
+    	free(out);
+
+	return ret;
+}
+
+int Bench(int argc, char** argv)
+{
+    int ret = 0;
+    
+    if (argc != 2) {
+        printf("Usage: cyassl benchmark\n");
+        return -1;
+    }
+
+    ret = Benchmark();
+
+    return ret;
+}
+
 int GetAlgorithm(char* name, char** alg, char** mode, int* size)
 {
 	int 	ret = 0;
@@ -408,7 +732,7 @@ int Benchmark()
 	Des3 des3;
 
     RNG rng;
-    
+
     int ret = 0;
     int timer = 3;    
     double start;

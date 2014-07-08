@@ -57,6 +57,10 @@
 #define MEGABYTE (1024*1024)
 #define MAX_THREADS 64
 
+int Enc(int argc, char** argv);
+int Dec(int argc, char** argv);
+int Has(int argc, char** argv);
+int Bench(int argc, char** argv);
 int GetAlgorithm(char* name, char** alg, char** mode, int* size);
 int GenerateKey(RNG* rng, byte* key, int size, byte* salt, int pad);
 int NoEcho(char* key, int size);
