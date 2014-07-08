@@ -8,4 +8,4 @@ cyassl: util.o cyassl.o
 .PHONY: clean all
 
 clean:
-	find . \! -name util.c \! -name Makefile \! -name README.md \! -name util.h  \! -name cyassl.c -delete
+	rm -f *.o cyassl
