@@ -29,6 +29,9 @@
 
 #endif /* HAVE_BLAKE2 */
 
+int loop = 1;
+int64_t blocks;
+
 int GetAlgorithm(char* name, char** alg, char** mode, int* size)
 {
 	int 	ret = 0;
@@ -133,6 +136,31 @@ void Append(char* s, char c)
     int len = strlen(s);
     s[len] = c;
     s[len+1] = '\0';
+}
+
+void Stopf(int signo)
+{
+    loop = 0;
+}
+
+double CurrTime(void)
+{
+    struct timeval tv;
+
+    gettimeofday(&tv, 0);
+
+    return (double)tv.tv_sec + (double)tv.tv_usec / 1000000;
+}
+
+void Stats(double start, int blockSize)
+{
+    int64_t compBlocks = blocks;
+    double total = CurrTime() - start, mbs;
+
+    printf("took %6.3f seconds, blocks = %ld\n", total, compBlocks);
+
+    mbs = compBlocks * blockSize / MEGABYTE / total;
+    printf("MB/s = %8.1f\n", mbs);
 }
 
 int Encrypt(char* alg, char* mode, byte* key, int size, char* in, char* out, 
@@ -374,228 +402,503 @@ int Decrypt(char* alg, char* mode, byte* key, int size, char* in, char* out,
     return 0;
 }
 
-#ifndef NO_MD5
-int Md5Hash(char* in, char* out)
+int Benchmark()
 {
-    Md5 hash;
-    FILE*  inFile;
-    FILE*  outFile;
+    Aes aes;
+	Des3 des3;
 
-    byte*   input;
-    byte*   output;
+    RNG rng;
+    
+    int ret = 0;
+    int timer = 3;    
+    double start;
+    ALIGN16 byte* plain;
+    ALIGN16 byte* cipher;
+    ALIGN16 byte* key;
+    ALIGN16 byte* iv;
+    byte* digest;
 
-    int length;
-    int ret;
+    InitRng(&rng);
 
-    InitMd5(&hash);
+    signal(SIGALRM, Stopf);
 
-    inFile = fopen(in, "r");
-    outFile = fopen(out, "w");
+    plain = malloc(AES_BLOCK_SIZE);
+    cipher = malloc(AES_BLOCK_SIZE);
+    key = malloc(AES_BLOCK_SIZE);
+    iv = malloc(AES_BLOCK_SIZE);
 
-    fseek(inFile, 0, SEEK_END);
-    length = ftell(inFile);
-    fseek(inFile, 0, SEEK_SET);
-    input = malloc(length);
-    output = malloc(MD5_DIGEST_SIZE);
+    RNG_GenerateBlock(&rng, plain, AES_BLOCK_SIZE);
+    RNG_GenerateBlock(&rng, cipher, AES_BLOCK_SIZE);
+    RNG_GenerateBlock(&rng, key, AES_BLOCK_SIZE);
+    RNG_GenerateBlock(&rng, iv, AES_BLOCK_SIZE);
 
-    ret = fread(input, 1, length, inFile);
-    if (ret == 0) {
-        printf("Input file does not exist.\n");
-        return -1010;
+    start = CurrTime();
+    alarm(timer);
+                   
+    AesSetKey(&aes, key, AES_BLOCK_SIZE, iv, AES_ENCRYPTION);
+    while (loop) {
+        AesCbcEncrypt(&aes, cipher, plain, AES_BLOCK_SIZE);
+        blocks++;
     }
+    printf("AES ");
+    Stats(start, AES_BLOCK_SIZE);
+    memset(plain, 0, AES_BLOCK_SIZE);
+    memset(cipher, 0, AES_BLOCK_SIZE);
+    memset(key, 0, AES_BLOCK_SIZE);
+    memset(iv, 0, AES_BLOCK_SIZE);
+    free(plain);
+    free(cipher);
+    free(key);
+    free(iv);
+    blocks = 0;
+    loop = 1;
+   
+    plain = malloc(DES3_BLOCK_SIZE);
+    cipher = malloc(DES3_BLOCK_SIZE);
+    key = malloc(DES3_BLOCK_SIZE);
+    iv = malloc(DES3_BLOCK_SIZE);
+    
+    RNG_GenerateBlock(&rng, plain, DES3_BLOCK_SIZE);
+    RNG_GenerateBlock(&rng, cipher, DES3_BLOCK_SIZE);
+    RNG_GenerateBlock(&rng, key, DES3_BLOCK_SIZE);
+    RNG_GenerateBlock(&rng, iv, DES3_BLOCK_SIZE);
+ 
+    start = CurrTime();
+    alarm(timer);
 
-    Md5Update(&hash, input, length);
-    Md5Final(&hash, output);
+       Des3_SetKey(&des3, key, iv, DES_ENCRYPTION);
+    while (loop) {
+        Des3_CbcEncrypt(&des3, cipher, plain, DES3_BLOCK_SIZE);
+        blocks++;
+    }
+    printf("3DES ");
+    Stats(start, DES3_BLOCK_SIZE);
+    memset(plain, 0, DES3_BLOCK_SIZE);
+    memset(cipher, 0, DES3_BLOCK_SIZE);
+    memset(key, 0, DES3_BLOCK_SIZE);
+    memset(iv, 0, DES3_BLOCK_SIZE);
+    free(plain);
+    free(cipher);
+    free(key);
+    free(iv);
+    blocks = 0;
+    loop = 1;
+    
+#ifdef HAVE_CAMELLIA
+	Camellia camellia;
 
-    fwrite(output, 1, MD5_DIGEST_SIZE, outFile);
+    plain = malloc(CAMELLIA_BLOCK_SIZE);
+    cipher = malloc(CAMELLIA_BLOCK_SIZE);
+    key = malloc(CAMELLIA_BLOCK_SIZE);
+    iv = malloc(CAMELLIA_BLOCK_SIZE);
+  
+    RNG_GenerateBlock(&rng, plain, CAMELLIA_BLOCK_SIZE);
+    RNG_GenerateBlock(&rng, cipher, CAMELLIA_BLOCK_SIZE);
+    RNG_GenerateBlock(&rng, key, CAMELLIA_BLOCK_SIZE);
+    RNG_GenerateBlock(&rng, iv, CAMELLIA_BLOCK_SIZE);
+  
+    start = CurrTime();
+    alarm(timer);
 
-    free(input);
-    free(output);
-    fclose(inFile);
-    fclose(outFile);
+    CamelliaSetKey(&camellia, key, CAMELLIA_BLOCK_SIZE, iv);
+    while (loop) {
+        CamelliaCbcEncrypt(&camellia, cipher, plain, CAMELLIA_BLOCK_SIZE);
+        blocks++;
+    }
+    printf("Camellia ");
+    Stats(start, CAMELLIA_BLOCK_SIZE);
+    memset(plain, 0, CAMELLIA_BLOCK_SIZE);
+    memset(cipher, 0, CAMELLIA_BLOCK_SIZE);
+    memset(key, 0, CAMELLIA_BLOCK_SIZE);
+    memset(iv, 0, CAMELLIA_BLOCK_SIZE);
+    free(plain);
+    free(cipher);
+    free(key);
+    free(iv);
+    blocks = 0;
+    loop = 1;
+#endif
 
+#ifndef NO_MD5
+    Md5 md5;
+
+    digest = malloc(MD5_DIGEST_SIZE);
+    plain = malloc(MEGABYTE);
+    RNG_GenerateBlock(&rng, plain, MEGABYTE);
+
+    InitMd5(&md5);
+    start = CurrTime();
+    alarm(timer);
+
+    while (loop) {
+        Md5Update(&md5, plain, MEGABYTE);
+        blocks++;
+    }
+    Md5Final(&md5, digest);
+    printf("MD5 ");
+    Stats(start, MEGABYTE);
+    memset(plain, 0, MEGABYTE);
+    memset(digest, 0, MD5_DIGEST_SIZE);
+    free(plain);
+    free(digest);
+    blocks = 0;
+    loop = 1;
+#endif
+
+#ifndef NO_SHA
+    Sha sha;
+
+    digest = malloc(SHA_DIGEST_SIZE);
+    plain = malloc(MEGABYTE);
+    RNG_GenerateBlock(&rng, plain, MEGABYTE);
+
+    InitSha(&sha);
+    start = CurrTime();
+    alarm(timer);
+
+    while (loop) {
+        ShaUpdate(&sha, plain, MEGABYTE);
+        blocks++;
+    }
+    ShaFinal(&sha, digest);
+    printf("Sha ");
+    Stats(start, MEGABYTE);
+    memset(plain, 0, MEGABYTE);
+    memset(digest, 0, SHA_DIGEST_SIZE);
+    free(plain);
+    free(digest);
+    blocks = 0;
+    loop = 1;
+#endif
+
+#ifndef NO_SHA256
+    Sha256 sha256;
+
+    digest = malloc(SHA256_DIGEST_SIZE);
+    plain = malloc(MEGABYTE);
+    RNG_GenerateBlock(&rng, plain, MEGABYTE);
+
+    InitSha256(&sha256);
+    start = CurrTime();
+    alarm(timer);
+
+    while (loop) {
+        Sha256Update(&sha256, plain, MEGABYTE);
+        blocks++;
+    }
+    Sha256Final(&sha256, digest);
+    printf("Sha256 ");
+    Stats(start, MEGABYTE);
+    memset(plain, 0, MEGABYTE);
+    memset(digest, 0, SHA256_DIGEST_SIZE);
+    free(plain);
+    free(digest);
+    blocks = 0;
+    loop = 1;
+
+#endif
+
+#ifdef CYASSL_SHA384
+    Sha384 sha384;
+
+    digest = malloc(SHA384_DIGEST_SIZE);
+    plain = malloc(MEGABYTE);
+    RNG_GenerateBlock(&rng, plain, MEGABYTE);
+
+    InitSha384(&sha384);
+    start = CurrTime();
+    alarm(timer);
+
+    while (loop) {
+        Sha384Update(&sha384, plain, MEGABYTE);
+        blocks++;
+    }
+    Sha384Final(&sha384, digest);
+    printf("Sha384 ");
+    Stats(start, MEGABYTE);
+    memset(plain, 0, MEGABYTE);
+    memset(digest, 0, SHA384_DIGEST_SIZE);
+    free(plain);
+    free(digest);
+    blocks = 0;
+    loop = 1;
+
+#endif
+
+#ifdef CYASSL_SHA512
+    Sha512 sha512;
+
+    digest = malloc(SHA512_DIGEST_SIZE);
+    plain = malloc(MEGABYTE);
+    RNG_GenerateBlock(&rng, plain, MEGABYTE);
+
+    InitSha512(&sha512);
+    start = CurrTime();
+    alarm(timer);
+
+    while (loop) {
+        Sha512Update(&sha512, plain, MEGABYTE);
+        blocks++;
+    }
+    Sha512Final(&sha512, digest);
+    printf("Sha512 ");
+    Stats(start, MEGABYTE);
+    memset(plain, 0, MEGABYTE);
+    memset(digest, 0, SHA512_DIGEST_SIZE);
+    free(plain);
+    free(digest);
+    blocks = 0;
+    loop = 1;
+#endif
+
+#ifdef HAVE_BLAKE2
+    Blake2b  b2b;
+
+    digest = malloc(BLAKE_DIGEST_SIZE);
+    plain = malloc(MEGABYTE);
+    RNG_GenerateBlock(&rng, plain, MEGABYTE);
+
+    InitBlake2b(&b2b, BLAKE_DIGEST_SIZE);
+    start = CurrTime();
+    alarm(timer);
+
+    while (loop) {
+        Blake2bUpdate(&b2b, plain, MEGABYTE);
+        blocks++;
+    }
+    Blake2bFinal(&b2b, digest, BLAKE_DIGEST_SIZE);
+    printf("Blake2b ");
+    Stats(start, MEGABYTE);
+    memset(plain, 0, MEGABYTE);
+    memset(digest, 0, BLAKE_DIGEST_SIZE);
+    free(plain);
+    free(digest);
+#endif
     return ret;
 }
+
+#ifndef NO_MD5
+    int Md5Hash(char* in, char* out)
+    {
+        Md5 hash;
+        FILE*  inFile;
+        FILE*  outFile;
+
+        byte*   input;
+        byte*   output;
+
+        int length;
+        int ret;
+
+        InitMd5(&hash);
+
+        inFile = fopen(in, "r");
+        outFile = fopen(out, "w");
+
+        fseek(inFile, 0, SEEK_END);
+        length = ftell(inFile);
+        fseek(inFile, 0, SEEK_SET);
+        input = malloc(length);
+        output = malloc(MD5_DIGEST_SIZE);
+
+        ret = fread(input, 1, length, inFile);
+        if (ret == 0) {
+            printf("Input file does not exist.\n");
+            return -1010;
+        }
+
+        Md5Update(&hash, input, length);
+        Md5Final(&hash, output);
+
+        fwrite(output, 1, MD5_DIGEST_SIZE, outFile);
+
+        free(input);
+        free(output);
+        fclose(inFile);
+        fclose(outFile);
+
+        return ret;
+    }
 #endif /* NO_MD5 */
 
 #ifndef NO_SHA
-int ShaHash(char* in, char* out)
-{
-    Sha hash;
-    FILE*  inFile;
-    FILE*  outFile;
+    int ShaHash(char* in, char* out)
+    {
+        Sha hash;
+        FILE*  inFile;
+        FILE*  outFile;
 
-    byte*   input;
-    byte*   output;
+        byte*   input;
+        byte*   output;
 
-    int length;
-    int ret;
+        int length;
+        int ret;
 
-    InitSha(&hash);
+        InitSha(&hash);
 
-    inFile = fopen(in, "r");
-    outFile = fopen(out, "w");
+        inFile = fopen(in, "r");
+        outFile = fopen(out, "w");
 
-    fseek(inFile, 0, SEEK_END);
-    length = ftell(inFile);
-    fseek(inFile, 0, SEEK_SET);
-    input = malloc(length);
-    output = malloc(SHA_DIGEST_SIZE);
+        fseek(inFile, 0, SEEK_END);
+        length = ftell(inFile);
+        fseek(inFile, 0, SEEK_SET);
+        input = malloc(length);
+        output = malloc(SHA_DIGEST_SIZE);
 
-    ret = fread(input, 1, length, inFile);
-    if (ret == 0) {
-        printf("Input file does not exist.\n");
-        return -1010;
+        ret = fread(input, 1, length, inFile);
+        if (ret == 0) {
+            printf("Input file does not exist.\n");
+            return -1010;
+        }
+
+        ShaUpdate(&hash, input, length);
+        ShaFinal(&hash, output);
+
+        fwrite(output, 1, SHA_DIGEST_SIZE, outFile);
+
+        free(input);
+        free(output);
+        fclose(inFile);
+        fclose(outFile);
+
+        return ret;
     }
-
-    ShaUpdate(&hash, input, length);
-    ShaFinal(&hash, output);
-
-    fwrite(output, 1, SHA_DIGEST_SIZE, outFile);
-
-    free(input);
-    free(output);
-    fclose(inFile);
-    fclose(outFile);
-
-    return ret;
-}
 #endif /* NO_SHA */
 
 #ifndef NO_SHA256
-int Sha256Hash(char* in, char* out)
-{
-    Sha256 hash;
-    FILE*  inFile;
-    FILE*  outFile;
+    int Sha256Hash(char* in, char* out)
+    {
+        Sha256 hash;
+        FILE*  inFile;
+        FILE*  outFile;
 
-    byte*   input;
-    byte*   output;
+        byte*   input;
+        byte*   output;
 
-    int length;
-    int ret;
+        int length;
+        int ret;
 
-    InitSha256(&hash);
+        InitSha256(&hash);
 
-    inFile = fopen(in, "r");
-    outFile = fopen(out, "w");
+        inFile = fopen(in, "r");
+        outFile = fopen(out, "w");
 
-    fseek(inFile, 0, SEEK_END);
-    length = ftell(inFile);
-    fseek(inFile, 0, SEEK_SET);
-    input = malloc(length);
-    output = malloc(SHA256_DIGEST_SIZE);
+        fseek(inFile, 0, SEEK_END);
+        length = ftell(inFile);
+        fseek(inFile, 0, SEEK_SET);
+        input = malloc(length);
+        output = malloc(SHA256_DIGEST_SIZE);
 
-    ret = fread(input, 1, length, inFile);
-    if (ret == 0) {
-        printf("Input file does not exist.\n");
-        return -1010;
+        ret = fread(input, 1, length, inFile);
+        if (ret == 0) {
+            printf("Input file does not exist.\n");
+            return -1010;
+        }
+
+        Sha256Update(&hash, input, length);
+        Sha256Final(&hash, output);
+
+        fwrite(output, 1, SHA256_DIGEST_SIZE, outFile);
+
+        free(input);
+        free(output);
+        fclose(inFile);
+        fclose(outFile);
+
+        return ret;
     }
-
-    Sha256Update(&hash, input, length);
-    Sha256Final(&hash, output);
-
-    fwrite(output, 1, SHA256_DIGEST_SIZE, outFile);
-
-    free(input);
-    free(output);
-    fclose(inFile);
-    fclose(outFile);
-
-    return ret;
-}
 #endif /* NO_SHA256 */
 
 #ifdef CYASSL_SHA384
-int Sha384Hash(char* in, char* out)
-{
-    Sha384 hash;
-    FILE*  inFile;
-    FILE*  outFile;
+    int Sha384Hash(char* in, char* out)
+    {
+        Sha384 hash;
+        FILE*  inFile;
+        FILE*  outFile;
 
-    byte*   input;
-    byte*   output;
+        byte*   input;
+        byte*   output;
 
-    int length;
-    int ret;
+        int length;
+        int ret;
 
-    InitSha384(&hash);
+        InitSha384(&hash);
 
-    inFile = fopen(in, "r");
-    outFile = fopen(out, "w");
+        inFile = fopen(in, "r");
+        outFile = fopen(out, "w");
 
-    fseek(inFile, 0, SEEK_END);
-    length = ftell(inFile);
-    fseek(inFile, 0, SEEK_SET);
-    input = malloc(length);
-    output = malloc(SHA384_DIGEST_SIZE);
+        fseek(inFile, 0, SEEK_END);
+        length = ftell(inFile);
+        fseek(inFile, 0, SEEK_SET);
+        input = malloc(length);
+        output = malloc(SHA384_DIGEST_SIZE);
 
-    ret = fread(input, 1, length, inFile);
-    if (ret == 0) {
-        printf("Input file does not exist.\n");
-        return -1010;
+        ret = fread(input, 1, length, inFile);
+        if (ret == 0) {
+            printf("Input file does not exist.\n");
+            return -1010;
+        }
+
+        Sha384Update(&hash, input, length);
+        Sha384Final(&hash, output);
+
+        fwrite(output, 1, SHA384_DIGEST_SIZE, outFile);
+
+        free(input);
+        free(output);
+        fclose(inFile);
+        fclose(outFile);
+
+        return ret;
     }
-
-    Sha384Update(&hash, input, length);
-    Sha384Final(&hash, output);
-
-    fwrite(output, 1, SHA384_DIGEST_SIZE, outFile);
-
-    free(input);
-    free(output);
-    fclose(inFile);
-    fclose(outFile);
-
-    return ret;
-}
 #endif /* CYASSL_SHA384 */
 
 #ifdef CYASSL_SHA512
-int Sha512Hash(char* in, char* out)
-{
-    Sha512 hash;
-    FILE*  inFile;
-    FILE*  outFile;
+    int Sha512Hash(char* in, char* out)
+    {
+        Sha512 hash;
+        FILE*  inFile;
+        FILE*  outFile;
 
-    byte*   input;
-    byte*   output;
+        byte*   input;
+        byte*   output;
 
-    int length;
-    int ret;
+        int length;
+        int ret;
 
-    InitSha512(&hash);
+        InitSha512(&hash);
 
-    inFile = fopen(in, "r");
-    outFile = fopen(out, "w");
+        inFile = fopen(in, "r");
+        outFile = fopen(out, "w");
 
-    fseek(inFile, 0, SEEK_END);
-    length = ftell(inFile);
-    fseek(inFile, 0, SEEK_SET);
-    input = malloc(length);
-    output = malloc(SHA512_DIGEST_SIZE);
+        fseek(inFile, 0, SEEK_END);
+        length = ftell(inFile);
+        fseek(inFile, 0, SEEK_SET);
+        input = malloc(length);
+        output = malloc(SHA512_DIGEST_SIZE);
 
-    ret = fread(input, 1, length, inFile);
-    if (ret == 0) {
-        printf("Input file does not exist.\n");
-        return -1010;
+        ret = fread(input, 1, length, inFile);
+        if (ret == 0) {
+            printf("Input file does not exist.\n");
+            return -1010;
+        }
+
+        Sha512Update(&hash, input, length);
+        Sha512Final(&hash, output);
+
+        fwrite(output, 1, SHA512_DIGEST_SIZE, outFile);
+
+        free(input);
+        free(output);
+        fclose(inFile);
+        fclose(outFile);
+
+        return ret;
     }
-
-    Sha512Update(&hash, input, length);
-    Sha512Final(&hash, output);
-
-    fwrite(output, 1, SHA512_DIGEST_SIZE, outFile);
-
-    free(input);
-    free(output);
-    fclose(inFile);
-    fclose(outFile);
-
-    return ret;
-}
 #endif /* CYASSL_SHA512 */
 
 #ifdef HAVE_BLAKE2
-int Blake2bHash(char* in, char* out)
+    int Blake2bHash(char* in, char* out)
 {
     Blake2b hash;
     FILE*  inFile;
