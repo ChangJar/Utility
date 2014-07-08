@@ -359,9 +359,22 @@ int Bench(int argc, char** argv)
 int GetAlgorithm(char* name, char** alg, char** mode, int* size)
 {
 	int 	ret = 0;
+    int     i;
+    int     nameCheck = 0;
 	char*	sz = 0;
+    char* acceptAlgs[] = {"aes", "3des", "camellia"};
 
 	*alg = strtok(name, "-");
+    for (i = 0; i < 3; i++) {
+        if (strcmp(*alg, acceptAlgs[i]) == 0 )
+            nameCheck = 1;
+    }
+
+    if (nameCheck == 0) {
+        printf("Invalid entry. Please enter -help for help\n");
+        return -1;
+    }
+
 	*mode = strtok(NULL, "-");
 	sz = strtok(NULL, "-");
 	*size = atoi(sz);
