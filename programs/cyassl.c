@@ -23,7 +23,7 @@ void help()
 {
     printf("\nUSAGE: cyassl COMMAND [options]... [arguments]...\n\n");
     printf("List of Commands\n");
-    printf("encrypt\ndecrypt\nhash\nbenchmark\n");
+    printf("encrypt\ndecrypt\nhash\nbenchmark\n\n");
 }
 
 int main(int argc, char** argv)
