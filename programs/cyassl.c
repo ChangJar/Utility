@@ -19,6 +19,12 @@
  */
 
 #include "util.h"
+void help()
+{
+    printf("\nUSAGE: cyassl COMMAND [options]... [arguments]...\n\n");
+    printf("List of Commands\n");
+    printf("encrypt\ndecrypt\nhash\nbenchmark\n");
+}
 
 int main(int argc, char** argv)
 {
@@ -28,11 +34,17 @@ int main(int argc, char** argv)
     char* commands[] = {"encrypt", "decrypt", "hash", "benchmark"};
 
     if (argc < 2) {
-        printf("USAGE: cyassl COMMAND [options]... [arguments]...\n");
+        help();
+        return 0;
     }
-
+    for (i = 0; i < argc; i++) {
+        if (strcmp(argv[i], "-help") == 0 && argc < 3) {
+            help();
+            return 0;
+        }
+    }
     for (i = 0; i < 4; i++) {
-        if (strcmp(argv[1], commands[i]) == 0) 
+        if (strcmp(argv[1], commands[i]) == 0 && num < 0) 
             num = i;
     }
 

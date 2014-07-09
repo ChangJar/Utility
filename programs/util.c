@@ -52,9 +52,13 @@ int Enc(int argc, char** argv)
     int     inCheck = 0;
     int     mark = 0;
 
-    if (argc < 3) {
-        printf("USAGE: cyassl encrypt <-algorithm> <-i filename> ");
-        printf("[-o filename] [-k password] [-iv IV]\n");
+    if (argc < 3 || strcmp(argv[2], "-help") == 0) {
+        printf("\nUSAGE: cyassl encrypt <-algorithm> <-i filename> ");
+        printf("[-o filename] [-k password] [-iv IV]\n\nAcceptable Algorithms");
+        printf("\n-aes-cbc-128\t\t-aes-cbc-192\t\t-aes-cbc-256\n");
+        printf("-3des-cbc-56\t\t-3des-cbc-112\t\t-3des-cbc-168\n");
+        printf("-camellia-cbc-128\t-camellia-cbc-192\t-camellia-cbc-256\n");
+        return 0;
     }
     
     name = argv[2];
@@ -156,9 +160,13 @@ int Dec(int argc, char** argv)
     int     inCheck = 0;
     int     mark = 0;
 
-    if (argc < 3) {
-        printf("USAGE: cyassl decrypt <-algorithm> <-i filename> ");
-        printf("[-o filename] [-k password] [-iv IV]\n");
+    if (argc < 3 || strcmp(argv[2], "-help") == 0) {
+        printf("\nUSAGE: cyassl decrypt <-algorithm> <-i filename> ");
+        printf("[-o filename] [-k password] [-iv IV]\n\nAcceptable Algorithms");
+        printf("\n-aes-cbc-128\t\t-aes-cbc-192\t\t-aes-cbc-256\n");
+        printf("-3des-cbc-56\t\t-3des-cbc-112\t\t-3des-cbc-168\n");
+        printf("-camellia-cbc-128\t-camellia-cbc-192\t-camellia-cbc-256\n");
+        return 0;
     }
  
     name = argv[2];
@@ -252,9 +260,13 @@ int Has(int argc, char** argv)
 	int inCheck = 0;
 	int outCheck = 0;
 
-	if (argc < 4) {
-        printf("Usage: cyassl hash <-algorithm> <-i filename> [-o filename]\n");
-        return -1;
+	if (argc < 3 || strcmp(argv[2], "-help") == 0) {
+        printf("USAGE: cyassl hash <-algorithm> <-i filename> [-o filename]\n");
+        printf("\nAcceptable Algorithms\n");
+        for (i = 0; i < 6; i++) {
+            printf("%s\n", algs[i]);
+        }
+        return 0;
     }
     
     for (i = 0; i < 6; i++) {
@@ -272,7 +284,7 @@ int Has(int argc, char** argv)
 
 	while (argc > 0) {          /* reads all arguments in command line */
 	    if (strcmp(*argv, "-i") == 0) {
-	    	inCheck = 1;
+	        inCheck = 1;
 	        in = *(++argv);
 	        argc--;
 	    }
