@@ -34,237 +34,189 @@ int64_t blocks;
 
 int Enc(int argc, char** argv)
 {
-    char*   name;
-    char*   alg;
-    char*   mode;
-    char*   in;
-    char*   out;
-    byte*   key;
-    byte*   iv;
+    char*    name;
+    char*    alg;
+    char*    mode;
+    char*    in;
+    char*    out;
+    byte*    key;
+    byte*    iv;
 
-    char    outName[256] = "encrypted";
-    int     size = 0;
-    int     i = 0;
-    int     ret = 0;
-    int     block = 0;
-    int     keyCheck = 0;
-    int     outCheck = 0;
-    int     inCheck = 0;
-    int     mark = 0;
+    char     outName[256] = "encrypted";
+    int      size = 0;
+    int      i = 0;
+    int      ret = 0;
+    int      block = 0;
+    int      keyCheck = 0;   
+    int      inCheck = 0;
+    int      outCheck = 0;
+    int      mark = 0;
 
-    if (argc < 3 || strcmp(argv[2], "-help") == 0) {
-        printf("\nUSAGE: cyassl encrypt <-algorithm> <-i filename> ");
-        printf("[-o filename] [-k password] [-iv IV]\n\nAcceptable Algorithms");
-        printf("\n-aes-cbc-128\t\t-aes-cbc-192\t\t-aes-cbc-256\n");
-        printf("-3des-cbc-56\t\t-3des-cbc-112\t\t-3des-cbc-168\n");
-        printf("-camellia-cbc-128\t-camellia-cbc-192\t-camellia-cbc-256\n\n");
-        return 0;
-    }
-    
-    name = argv[2];
-    block = GetAlgorithm(name, &alg, &mode, &size);
-
-    if (block != -1) {
-        key = malloc(size);        /* saves memory for entered keysize */
-        iv = malloc(block);        /* saves memory for block size */
-        memset(iv, 0, block);      /* sets all iv memory to 0 */
-        
-        argc-=3;
-        argv+=3;
-
-        while (argc > 0) {          /* reads all arguments in command line */
-            if (strcmp(*argv, "-help") == 0) {
-                printf("\nUSAGE: cyassl encrypt <-algorithm> <-i filename> ");
-                printf("[-o filename] [-k password] [-iv IV]\n\n"
-                       "Acceptable Algorithms");
-                printf("\n-aes-cbc-128\t\t-aes-cbc-192\t\t-aes-cbc-256\n");
-                printf("-3des-cbc-56\t\t-3des-cbc-112\t\t-3des-cbc-168\n");
-                printf("-camellia-cbc-128\t-camellia-cbc-192\t"
-                       "-camellia-cbc-256\n\n");
-                return 0;
-            }
-            else if (strcmp(*argv, "-i") == 0) {
-                inCheck = 1;
-                in = *(++argv);
-                argc--;
-            }
-
-            else if (strcmp(*argv, "-o") == 0) {
-                if (argc != 1 && strcmp(*(argv+1), "-i") != 0 && strcmp(
-                    *(argv+1), "-k") != 0 && strcmp(*(argv+1), "-iv") != 0) {
-                    outCheck = 1;
-                    out = *(++argv);
-                    argc--;
-                }
-            }
-
-            else if (strcmp(*argv, "-k") == 0) {
-                if (argc != 1 && strcmp(*(argv+1), "-i") != 0 && strcmp(
-                    *(argv+1), "-o") != 0 && strcmp(*(argv+1), "-iv") != 0) {
-                    keyCheck = 1;
-                    memcpy(key, *(++argv), size);
-                    argc--;
-                }
-            }
-
-            else if (strcmp(*argv, "-iv") == 0) {
-                memcpy(iv, *(++argv), block);
-                argc--;
-                if (strlen((const char*)iv) != block) {
-                    printf("Invalid IV. Must match algoritm block size.\n");
-                    printf("Randomly Generating IV.\n");
-                    memset(iv, 0, block);
-                }
-            }
-
-            else {
-                printf("invalid argument %s\n", *argv);
-                break;
-            }
-            argc--;
-            argv++;   
+    for (i = 2; i < argc; i++) {
+       if (strcmp(argv[i], "-help") == 0) {
+            printf("\nUSAGE: cyassl encrypt <-algorithm> <-i filename> ");
+            printf("[-o filename] [-k password] [-iv IV]\n\n"
+                   "Acceptable Algorithms");
+            printf("\n-aes-cbc-128\t\t-aes-cbc-192\t\t-aes-cbc-256\n");
+            printf("-3des-cbc-56\t\t-3des-cbc-112\t\t-3des-cbc-168\n");
+            printf("-camellia-cbc-128\t-camellia-cbc-192\t"
+                   "-camellia-cbc-256\n\n");
+            return 0;
         }
     }
-    else {
-        return -1;
-    }
-    if (keyCheck != 1) {
-        ret = NoEcho((char*)key, size);
-    }
-    if (inCheck == 1 && outCheck == 0) {
-        out = outName;
-        for (i = 0; i < strlen(in); i++) {
-            if ((in[i] == '.') || (mark == 1)) {
-                mark = 1;
-                Append(out, in[i]);
+
+    name = argv[2];
+    block = GetAlgorithm(name, &alg, &mode, &size);
+    if (block != -1) {
+        key = malloc(size);
+        iv = malloc(block);
+        memset(iv, 0, block);
+
+        for (i = 3; i < argc; i++) {
+            if (strcmp(argv[i], "-i") == 0 && argv[i+1] != NULL) {
+                in = argv[i+1];
+                inCheck = 1;
+                i++;
+            }
+            else if (strcmp(argv[i], "-o") == 0 && argv[i+1] != NULL) {
+                out = argv[i+1];
+                outCheck = 1;
+                i++;
+            }
+            else if (strcmp(argv[i], "-k") == 0 && argv[i+1] != NULL) {
+                memcpy(key, argv[i+1], size);
+                keyCheck = 1;
+                i++;
+            }
+            else if (strcmp(argv[i], "-iv") == 0 && argv[i+1] != NULL) {
+                if (strlen(argv[i+1]) != block) {
+                    printf("Invalid IV. Must match algorithm block size.\n");
+                    printf("Randomly Generating IV.\n");
+                }
+                else {
+                    iv = memcpy(iv, argv[i+1], block);
+                }
+                i++;
+            }
+            else {
+                printf("Unknown argument %s. Ignoring\n", argv[i]);
+            }
+        }
+        if (inCheck == 0) {
+            printf("Must have input as either a file or standard I/O\n");
+            return -1;
+        }
+        if (keyCheck == 0) {
+            ret = NoEcho((char*)key, size);
+        }
+        if (outCheck == 0) {
+            out = outName;
+            for (i = 0; i < strlen(in); i++) {
+                if ((in[i] == '.') || (mark == 1)) {
+                    mark = 1;
+                    Append(out, in[i]);
+                }
             }
         }
         ret = Encrypt(alg, mode, key, size, in, out, iv, block);
-    }
-    else {
-        printf("Must have input as either a file or standard I/O\n");
-    }
 
-    free(key);
-    free(iv);
+        free(key);
+        free(iv);
+    }
     return ret;
 }
 
 int Dec(int argc, char** argv)
 {
-    char*   name;
-    char*   alg;
-    char*   mode;
-    char*   in;
-    char*   out;
-    byte*   key;
-    byte*   iv;
+    char*    name;
+    char*    alg;
+    char*    mode;
+    char*    in;
+    char*    out;
+    byte*    key;
+    byte*    iv;
 
-    char    outName[256] = "decrypted";
-    int     size = 0;
-    int     i = 0;
-    int     ret = 0;
-    int     block = 0;
-    int     keyCheck = 0;
-    int     outCheck = 0;
-    int     inCheck = 0;
-    int     mark = 0;
+    char     outName[256] = "decrypted";
+    int      size = 0;
+    int      i = 0;
+    int      ret = 0;
+    int      block = 0;
+    int      keyCheck = 0;   
+    int      inCheck = 0;
+    int      outCheck = 0;
+    int      mark = 0;
 
-    if (argc < 3 || strcmp(argv[2], "-help") == 0) {
-        printf("\nUSAGE: cyassl decrypt <-algorithm> <-i filename> ");
-        printf("[-o filename] [-k password] [-iv IV]\n\nAcceptable Algorithms");
-        printf("\n-aes-cbc-128\t\t-aes-cbc-192\t\t-aes-cbc-256\n");
-        printf("-3des-cbc-56\t\t-3des-cbc-112\t\t-3des-cbc-168\n");
-        printf("-camellia-cbc-128\t-camellia-cbc-192\t-camellia-cbc-256\n\n");
-        return 0;
+    for (i = 2; i < argc; i++) {
+       if (strcmp(argv[i], "-help") == 0) {
+            printf("\nUSAGE: cyassl decrypt <-algorithm> <-i filename> ");
+            printf("[-o filename] [-k password] [-iv IV]\n\n"
+                   "Acceptable Algorithms");
+            printf("\n-aes-cbc-128\t\t-aes-cbc-192\t\t-aes-cbc-256\n");
+            printf("-3des-cbc-56\t\t-3des-cbc-112\t\t-3des-cbc-168\n");
+            printf("-camellia-cbc-128\t-camellia-cbc-192\t"
+                   "-camellia-cbc-256\n\n");
+            return 0;
+        }
     }
- 
+
     name = argv[2];
     block = GetAlgorithm(name, &alg, &mode, &size);
-
     if (block != -1) {
-        key = malloc(size);        /* saves memory for entered keysize */
-        iv = malloc(block);        /* saves memory for block size */
-        memset(iv, 0, block);      /* sets all iv memory to 0 */
-        
-        argc-=3;
-        argv+=3;
+        key = malloc(size);
+        iv = malloc(block);
+        memset(iv, 0, block);
 
-        while (argc > 0) {          /* reads all arguments in command line */
-            if (strcmp(*argv, "-help") == 0) {
-                printf("\nUSAGE: cyassl decrypt <-algorithm> <-i filename> ");
-                printf("[-o filename] [-k password] [-iv IV]\n\n"
-                       "Acceptable Algorithms");
-                printf("\n-aes-cbc-128\t\t-aes-cbc-192\t\t-aes-cbc-256\n");
-                printf("-3des-cbc-56\t\t-3des-cbc-112\t\t-3des-cbc-168\n");
-                printf("-camellia-cbc-128\t-camellia-cbc-192\t"
-                       "-camellia-cbc-256\n\n");
-                return 0;
-            }
-            else if (strcmp(*argv, "-i") == 0) {
+        for (i = 3; i < argc; i++) {
+            if (strcmp(argv[i], "-i") == 0 && argv[i+1] != NULL) {
+                in = argv[i+1];
                 inCheck = 1;
-                in = *(++argv);
-                argc--;
+                i++;
             }
-
-            else if (strcmp(*argv, "-o") == 0) {
-                if (argc != 1 && strcmp(*(argv+1), "-i") != 0 && strcmp(
-                    *(argv+1), "-k") != 0 && strcmp(*(argv+1), "-iv") != 0) {
-                    outCheck = 1;
-                    out = *(++argv);
-                    argc--;
-                }
+            else if (strcmp(argv[i], "-o") == 0 && argv[i+1] != NULL) {
+                out = argv[i+1];
+                outCheck = 1;
+                i++;
             }
-
-            else if (strcmp(*argv, "-k") == 0) {
-                if (argc != 1 && strcmp(*(argv+1), "-i") != 0 && strcmp(
-                    *(argv+1), "-o") != 0 && strcmp(*(argv+1), "-iv") != 0) {
-                    keyCheck = 1;
-                    memcpy(key, *(++argv), size);
-                    argc--;
-                }
+            else if (strcmp(argv[i], "-k") == 0 && argv[i+1] != NULL) {
+                memcpy(key, argv[i+1], size);
+                keyCheck = 1;
+                i++;
             }
-
-            else if (strcmp(*argv, "-iv") == 0) {
-                memcpy(iv, *(++argv), block);
-                argc--;
-                if (strlen((const char*)iv) != block) {
-                    printf("Invalid IV. Must match algoritm block size.\n");
+            else if (strcmp(argv[i], "-iv") == 0 && argv[i+1] != NULL) {
+                if (strlen(argv[i+1]) != block) {
+                    printf("Invalid IV. Must match algorithm block size.\n");
                     printf("Randomly Generating IV.\n");
-                    memset(iv, 0, block);
+                }
+                else {
+                    iv = memcpy(iv, argv[i+1], block);
+                }
+                i++;
+            }
+            else {
+                printf("Unknown argument %s. Ignoring\n", argv[i]);
+            }
+        }
+        if (inCheck == 0) {
+            printf("Must have input as a file\n");
+            return -1;
+        }
+        if (keyCheck == 0) {
+            ret = NoEcho((char*)key, size);
+        }
+        if (outCheck == 0) {
+            out = outName;
+            for (i = 0; i < strlen(in); i++) {
+                if ((in[i] == '.') || (mark == 1)) {
+                    mark = 1;
+                    Append(out, in[i]);
                 }
             }
-
-            else {
-                printf("invalid argument %s\n", *argv);
-                break;
-            }
-            argc--;
-            argv++;   
         }
-    }
-    else {
-        return -1;
-    }
-    if (keyCheck != 1) {
-        ret = NoEcho((char*)key, size);
-    }
-    if (inCheck == 1 && outCheck == 0) {
-        out = outName;
-        for (i = 0; i < strlen(in); i++) {
-            if ((in[i] == '.') || (mark == 1)) {
-                mark = 1;
-                Append(out, in[i]);
-            }
-        }
-        ret = Decrypt(alg, mode, key, size, in, out, iv, block);
-    }
-    else {
-        printf("Must have input as either a file or standard I/O\n");
-    }
+        ret = Decrypt(alg, mode, key, size, in ,out, iv, block);
 
-    free(key);
-    free(iv);
+        free(key);
+        free(iv);
+    }
     return ret;
 }
 
@@ -277,19 +229,23 @@ int Has(int argc, char** argv)
 	char* algs[] = {"-md5","-sha","-sha256","-sha384","-sha512","-blake2b"};
 	char* alg;
 	int num = -1;
+    int size = 0;
 	int inCheck = 0;
 	int outCheck = 0;
 
-	if (argc < 3 || strcmp(argv[2], "-help") == 0) {
-        printf("\nUSAGE: cyassl hash <-algorithm> <-i filename> [-o filename]");
-        printf("\n\nAcceptable Algorithms\n");
-        for (i = 0; i < 6; i++) {
-            printf("%s\n", algs[i]);
+	for (i = 2; i < argc; i++) {
+       if (strcmp(argv[i], "-help") == 0) {
+            printf("\nUSAGE: cyassl hash <-algorithm> <-i filename>"
+                   " [-o filename]");
+            printf(" [-s size](*size use for Blake2b only between 0-64*)\n");
+            printf("\nAcceptable Algorithms\n");
+            for (i = 0; i < 6; i++) {
+                printf("%s\n", algs[i]);
+            }
+            printf("\n");
+            return 0;
         }
-        printf("\n");
-        return 0;
-    }
-    
+    } 
     for (i = 0; i < 6; i++) {
 		if (strcmp(argv[2], algs[i]) == 0) {
 			alg = argv[2];
@@ -300,42 +256,40 @@ int Has(int argc, char** argv)
 		printf("Invalid algorithm\n");
 		return -1;
 	}
-	argc-=3;
-    argv+=3;
 
-	while (argc > 0) {          /* reads all arguments in command line */
-        if (strcmp(*argv, "-help") == 0) {
-            printf("\nUSAGE: cyassl hash <-algorithm> <-i filename>");
-            printf(" [-o filename]\n\nAcceptable Algorithms\n");
-            for (i = 0; i < 6; i++) {
-                printf("%s\n", algs[i]);
-            }
-            printf("\n");
-            return 0;
+	for (i = 3; i < argc; i++) {
+        if (strcmp(argv[i], "-i") == 0 && argv[i+1] != NULL) {
+            in = argv[i+1];
+            inCheck = 1;
+            i++;
         }
-        else if (strcmp(*argv, "-i") == 0) {
-	        inCheck = 1;
-	        in = *(++argv);
-	        argc--;
-	    }
-
-	    else if (strcmp(*argv, "-o") == 0) {
-        	outCheck = 1;
-            out = *(++argv);
-            argc--;
-	    }
-	    argc--;
-	}
-    if (inCheck == 1 && outCheck == 0) {
+        else if (strcmp(argv[i], "-o") == 0 && argv[i+1] != NULL) {
+            out = argv[i+1];
+            outCheck = 1;
+            i++;
+        }
+        else if (strcmp(argv[i], "-s") == 0 && argv[i+1] != NULL) {
+            size = atoi(argv[i+1]);
+            if (size <= 0 || size > 64) {
+                printf("Invalid size, Must be between 0-64. Using default.\n");
+                size = BLAKE_DIGEST_SIZE;
+            }
+            i++;
+        }
+        else {
+            printf("Unknown argument %s. Ignoring\n", argv[i]);
+        }
+    }
+    if (inCheck == 0) {
+        printf("Must have input as either a file or standard I/O\n");
+        return -1;
+    }
+    if (outCheck == 0) {
     	out = malloc(strlen(in) + 1 + strlen(alg));
         alg = strtok(alg, "-");
         strcpy(out, in);
         strcat(out, ".");
         strcat(out, alg);
-    }
-    else if (inCheck == 0) {
-        printf("Must have input as either a file or standard I/O\n");
-        return -1;
     }
 	switch(num) {
 #ifndef NO_MD5
@@ -370,7 +324,7 @@ int Has(int argc, char** argv)
 
 #ifdef HAVE_BLAKE2
         case 5:
-        Blake2bHash(in, out);
+        Blake2bHash(in, out, size);
             break;
 #endif
         default :
@@ -387,13 +341,29 @@ int Has(int argc, char** argv)
 int Bench(int argc, char** argv)
 {
     int ret = 0;
-    
-    if (argc != 2) {
-        printf("\nUsage: cyassl benchmark\n\n");
-        return -1;
-    }
+    int time = 3;
+    int i = 0;
 
-    ret = Benchmark();
+    for (i = 2; i < argc; i++) {
+        if (strcmp(argv[i], "-help") == 0) {
+            printf("\nUsage: cyassl benchmark [-t timer(1-10)]\nCurrently ");
+            printf("tests all available features of the cyassl utility.\n\n");
+            return -1;
+        }
+        if (strcmp(argv[i], "-t") == 0 && argv[i+1] != NULL) {
+            time = atoi(argv[i+1]);
+            if (time <= 1 || time > 10) {
+                printf("Invalid time, must be between 1-10. Using default.\n");
+                time = 3;
+            }
+            i++;
+        }
+        else {
+            printf("Unknown argument %s. Ignoring\n", argv[i]);
+        }
+    }
+    printf("\nTesting for %d seconds each\n", time);
+    ret = Benchmark(time);
 
     return ret;
 }
@@ -403,7 +373,8 @@ int GetAlgorithm(char* name, char** alg, char** mode, int* size)
 	int 	ret = 0;
     int     i;
     int     nameCheck = 0;
-	char*	sz = 0;
+	int     modeCheck = 0;
+    char*	sz = 0;
     char* acceptAlgs[] = {"aes", "3des", "camellia"};
 
 	*alg = strtok(name, "-");
@@ -411,13 +382,15 @@ int GetAlgorithm(char* name, char** alg, char** mode, int* size)
         if (strcmp(*alg, acceptAlgs[i]) == 0 )
             nameCheck = 1;
     }
+    *mode = strtok(NULL, "-");
+    if (strcmp(*mode, "cbc") == 0)
+        modeCheck = 1;
 
-    if (nameCheck == 0) {
+    if (nameCheck == 0 || modeCheck == 0) {
         printf("Invalid entry. Please enter -help for help\n");
         return -1;
     }
 
-	*mode = strtok(NULL, "-");
 	sz = strtok(NULL, "-");
 	*size = atoi(sz);
 	if (strcmp(*alg, "aes") == 0) {
@@ -501,7 +474,6 @@ int NoEcho(char* key, int size)
     printf("Key: ");
     fgets(key, size, stdin);
     key[strlen(key) - 1] = 0;
-
     /* restore terminal */
     if (tcsetattr(fileno(stdin), TCSANOW, &oflags) != 0) {
         printf("Error\n");
@@ -781,7 +753,7 @@ int Decrypt(char* alg, char* mode, byte* key, int size, char* in, char* out,
     return 0;
 }
 
-int Benchmark()
+int Benchmark(int timer)
 {
     Aes aes;
 	Des3 des3;
@@ -789,7 +761,6 @@ int Benchmark()
     RNG rng;
 
     int ret = 0;
-    int timer = 3;    
     double start;
     ALIGN16 byte* plain;
     ALIGN16 byte* cipher;
@@ -1057,227 +1028,227 @@ int Benchmark()
 }
 
 #ifndef NO_MD5
-    int Md5Hash(char* in, char* out)
-    {
-        Md5 hash;
-        FILE*  inFile;
-        FILE*  outFile;
+int Md5Hash(char* in, char* out)
+{
+    Md5 hash;
+    FILE*  inFile;
+    FILE*  outFile;
 
-        byte*   input;
-        byte*   output;
+    byte*   input;
+    byte*   output;
 
-        int length;
-        int ret;
+    int length;
+    int ret;
 
-        InitMd5(&hash);
+    InitMd5(&hash);
 
-        inFile = fopen(in, "r");
-        if (inFile == NULL) {
-            printf("Input file does not exist\n");
-            return -1;
-        }
-        outFile = fopen(out, "w");
-
-        fseek(inFile, 0, SEEK_END);
-        length = ftell(inFile);
-        fseek(inFile, 0, SEEK_SET);
-        input = malloc(length);
-        output = malloc(MD5_DIGEST_SIZE);
-
-        ret = fread(input, 1, length, inFile);
-
-        Md5Update(&hash, input, length);
-        Md5Final(&hash, output);
-
-        fwrite(output, 1, MD5_DIGEST_SIZE, outFile);
-
-        free(input);
-        free(output);
-        fclose(inFile);
-        fclose(outFile);
-
-        return ret;
+    inFile = fopen(in, "r");
+    if (inFile == NULL) {
+        printf("Input file does not exist\n");
+        return -1;
     }
+    outFile = fopen(out, "w");
+
+    fseek(inFile, 0, SEEK_END);
+    length = ftell(inFile);
+    fseek(inFile, 0, SEEK_SET);
+    input = malloc(length);
+    output = malloc(MD5_DIGEST_SIZE);
+
+    ret = fread(input, 1, length, inFile);
+
+    Md5Update(&hash, input, length);
+    Md5Final(&hash, output);
+
+    fwrite(output, 1, MD5_DIGEST_SIZE, outFile);
+
+    free(input);
+    free(output);
+    fclose(inFile);
+    fclose(outFile);
+
+    return ret;
+}
 #endif /* NO_MD5 */
 
 #ifndef NO_SHA
-    int ShaHash(char* in, char* out)
-    {
-        Sha hash;
-        FILE*  inFile;
-        FILE*  outFile;
+int ShaHash(char* in, char* out)
+{
+    Sha hash;
+    FILE*  inFile;
+    FILE*  outFile;
 
-        byte*   input;
-        byte*   output;
+    byte*   input;
+    byte*   output;
 
-        int length;
-        int ret;
+    int length;
+    int ret;
 
-        InitSha(&hash);
+    InitSha(&hash);
 
-        inFile = fopen(in, "r");
-        if (inFile == NULL) {
-            printf("Input file does not exist\n");
-            return -1;
-        }
-        outFile = fopen(out, "w");
-
-        fseek(inFile, 0, SEEK_END);
-        length = ftell(inFile);
-        fseek(inFile, 0, SEEK_SET);
-        input = malloc(length);
-        output = malloc(SHA_DIGEST_SIZE);
-
-        ret = fread(input, 1, length, inFile);
-
-        ShaUpdate(&hash, input, length);
-        ShaFinal(&hash, output);
-
-        fwrite(output, 1, SHA_DIGEST_SIZE, outFile);
-
-        free(input);
-        free(output);
-        fclose(inFile);
-        fclose(outFile);
-
-        return ret;
+    inFile = fopen(in, "r");
+    if (inFile == NULL) {
+        printf("Input file does not exist\n");
+        return -1;
     }
+    outFile = fopen(out, "w");
+
+    fseek(inFile, 0, SEEK_END);
+    length = ftell(inFile);
+    fseek(inFile, 0, SEEK_SET);
+    input = malloc(length);
+    output = malloc(SHA_DIGEST_SIZE);
+
+    ret = fread(input, 1, length, inFile);
+
+    ShaUpdate(&hash, input, length);
+    ShaFinal(&hash, output);
+
+    fwrite(output, 1, SHA_DIGEST_SIZE, outFile);
+
+    free(input);
+    free(output);
+    fclose(inFile);
+    fclose(outFile);
+
+    return ret;
+}
 #endif /* NO_SHA */
 
 #ifndef NO_SHA256
-    int Sha256Hash(char* in, char* out)
-    {
-        Sha256 hash;
-        FILE*  inFile;
-        FILE*  outFile;
+int Sha256Hash(char* in, char* out)
+{
+    Sha256 hash;
+    FILE*  inFile;
+    FILE*  outFile;
 
-        byte*   input;
-        byte*   output;
+    byte*   input;
+    byte*   output;
 
-        int length;
-        int ret;
+    int length;
+    int ret;
 
-        InitSha256(&hash);
+    InitSha256(&hash);
 
-        inFile = fopen(in, "r");
-        if (inFile == NULL) {
-            printf("Input file does not exist\n");
-            return -1;
-        }
-        outFile = fopen(out, "w");
-
-        fseek(inFile, 0, SEEK_END);
-        length = ftell(inFile);
-        fseek(inFile, 0, SEEK_SET);
-        input = malloc(length);
-        output = malloc(SHA256_DIGEST_SIZE);
-
-        ret = fread(input, 1, length, inFile);
-
-        Sha256Update(&hash, input, length);
-        Sha256Final(&hash, output);
-
-        fwrite(output, 1, SHA256_DIGEST_SIZE, outFile);
-
-        free(input);
-        free(output);
-        fclose(inFile);
-        fclose(outFile);
-
-        return ret;
+    inFile = fopen(in, "r");
+    if (inFile == NULL) {
+        printf("Input file does not exist\n");
+        return -1;
     }
+    outFile = fopen(out, "w");
+
+    fseek(inFile, 0, SEEK_END);
+    length = ftell(inFile);
+    fseek(inFile, 0, SEEK_SET);
+    input = malloc(length);
+    output = malloc(SHA256_DIGEST_SIZE);
+
+    ret = fread(input, 1, length, inFile);
+
+    Sha256Update(&hash, input, length);
+    Sha256Final(&hash, output);
+
+    fwrite(output, 1, SHA256_DIGEST_SIZE, outFile);
+
+    free(input);
+    free(output);
+    fclose(inFile);
+    fclose(outFile);
+
+    return ret;
+}
 #endif /* NO_SHA256 */
 
 #ifdef CYASSL_SHA384
-    int Sha384Hash(char* in, char* out)
-    {
-        Sha384 hash;
-        FILE*  inFile;
-        FILE*  outFile;
+int Sha384Hash(char* in, char* out)
+{
+    Sha384 hash;
+    FILE*  inFile;
+    FILE*  outFile;
 
-        byte*   input;
-        byte*   output;
+    byte*   input;
+    byte*   output;
 
-        int length;
-        int ret;
+    int length;
+    int ret;
 
-        InitSha384(&hash);
+    InitSha384(&hash);
 
-        inFile = fopen(in, "r");
-        if (inFile == NULL) {
-            printf("Input file does not exist\n");
-            return -1;
-        }
-        outFile = fopen(out, "w");
-
-        fseek(inFile, 0, SEEK_END);
-        length = ftell(inFile);
-        fseek(inFile, 0, SEEK_SET);
-        input = malloc(length);
-        output = malloc(SHA384_DIGEST_SIZE);
-
-        ret = fread(input, 1, length, inFile);
-
-        Sha384Update(&hash, input, length);
-        Sha384Final(&hash, output);
-
-        fwrite(output, 1, SHA384_DIGEST_SIZE, outFile);
-
-        free(input);
-        free(output);
-        fclose(inFile);
-        fclose(outFile);
-
-        return ret;
+    inFile = fopen(in, "r");
+    if (inFile == NULL) {
+        printf("Input file does not exist\n");
+        return -1;
     }
+    outFile = fopen(out, "w");
+
+    fseek(inFile, 0, SEEK_END);
+    length = ftell(inFile);
+    fseek(inFile, 0, SEEK_SET);
+    input = malloc(length);
+    output = malloc(SHA384_DIGEST_SIZE);
+
+    ret = fread(input, 1, length, inFile);
+
+    Sha384Update(&hash, input, length);
+    Sha384Final(&hash, output);
+
+    fwrite(output, 1, SHA384_DIGEST_SIZE, outFile);
+
+    free(input);
+    free(output);
+    fclose(inFile);
+    fclose(outFile);
+
+    return ret;
+}
 #endif /* CYASSL_SHA384 */
 
 #ifdef CYASSL_SHA512
-    int Sha512Hash(char* in, char* out)
-    {
-        Sha512 hash;
-        FILE*  inFile;
-        FILE*  outFile;
+int Sha512Hash(char* in, char* out)
+{
+    Sha512 hash;
+    FILE*  inFile;
+    FILE*  outFile;
 
-        byte*   input;
-        byte*   output;
+    byte*   input;
+    byte*   output;
 
-        int length;
-        int ret;
+    int length;
+    int ret;
 
-        InitSha512(&hash);
+    InitSha512(&hash);
 
-        inFile = fopen(in, "r");
-        if (inFile == NULL) {
-            printf("Input file does not exist\n");
-            return -1;
-        }
-        outFile = fopen(out, "w");
-
-        fseek(inFile, 0, SEEK_END);
-        length = ftell(inFile);
-        fseek(inFile, 0, SEEK_SET);
-        input = malloc(length);
-        output = malloc(SHA512_DIGEST_SIZE);
-
-        ret = fread(input, 1, length, inFile);
-
-        Sha512Update(&hash, input, length);
-        Sha512Final(&hash, output);
-
-        fwrite(output, 1, SHA512_DIGEST_SIZE, outFile);
-
-        free(input);
-        free(output);
-        fclose(inFile);
-        fclose(outFile);
-
-        return ret;
+    inFile = fopen(in, "r");
+    if (inFile == NULL) {
+        printf("Input file does not exist\n");
+        return -1;
     }
+    outFile = fopen(out, "w");
+
+    fseek(inFile, 0, SEEK_END);
+    length = ftell(inFile);
+    fseek(inFile, 0, SEEK_SET);
+    input = malloc(length);
+    output = malloc(SHA512_DIGEST_SIZE);
+
+    ret = fread(input, 1, length, inFile);
+
+    Sha512Update(&hash, input, length);
+    Sha512Final(&hash, output);
+
+    fwrite(output, 1, SHA512_DIGEST_SIZE, outFile);
+
+    free(input);
+    free(output);
+    fclose(inFile);
+    fclose(outFile);
+
+    return ret;
+}
 #endif /* CYASSL_SHA512 */
 
 #ifdef HAVE_BLAKE2
-    int Blake2bHash(char* in, char* out)
+int Blake2bHash(char* in, char* out, int size)
 {
     Blake2b hash;
     FILE*  inFile;
@@ -1289,25 +1260,29 @@ int Benchmark()
     int length;
     int ret;
 
-    InitBlake2b(&hash, BLAKE_DIGEST_SIZE);
+    if (size == 0) 
+    {
+        size = BLAKE_DIGEST_SIZE;
+    }
+    InitBlake2b(&hash, size);
 
     inFile = fopen(in, "r");
     if (inFile == NULL) {
             printf("Input file does not exist\n");
             return -1;
-        }
+    }
     outFile = fopen(out, "w");
 
     fseek(inFile, 0, SEEK_END);
     length = ftell(inFile);
     fseek(inFile, 0, SEEK_SET);
     input = malloc(length);
-    output = malloc(BLAKE_DIGEST_SIZE);
+    output = malloc(size);
 
     ret = fread(input, 1, length, inFile);
    
     Blake2bUpdate(&hash, input, length);
-    Blake2bFinal(&hash, output, BLAKE_DIGEST_SIZE);
+    Blake2bFinal(&hash, output, size);
 
     fwrite(output, 1, SHA384_DIGEST_SIZE, outFile);
 

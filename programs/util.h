@@ -70,7 +70,7 @@ int Encrypt(char* alg, char* mode, byte* key, int size, char* in,
 	char* out, byte* iv, int block);
 int Decrypt(char* alg, char* mode, byte* key, int size, char* in, 
 	char* out, byte* iv, int block);
-int Benchmark();
+int Benchmark(int timer);
 
 #ifndef NO_MD5
     int Md5Hash(char* in, char* out);
@@ -93,7 +93,7 @@ int Benchmark();
 #endif
 
 #ifdef HAVE_BLAKE2
-	int Blake2bHash(char* in, char* out);
+	int Blake2bHash(char* in, char* out, int size);
 #endif
 
 #endif
