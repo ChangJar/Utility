@@ -268,6 +268,7 @@ int Has(int argc, char** argv)
             outCheck = 1;
             i++;
         }
+#ifdef HAVE_BLAKE
         else if (strcmp(argv[i], "-s") == 0 && argv[i+1] != NULL) {
             size = atoi(argv[i+1]);
             if (size <= 0 || size > 64) {
@@ -276,6 +277,7 @@ int Has(int argc, char** argv)
             }
             i++;
         }
+#endif
         else {
             printf("Unknown argument %s. Ignoring\n", argv[i]);
         }
@@ -1284,7 +1286,7 @@ int Blake2bHash(char* in, char* out, int size)
     Blake2bUpdate(&hash, input, length);
     Blake2bFinal(&hash, output, size);
 
-    fwrite(output, 1, SHA384_DIGEST_SIZE, outFile);
+    fwrite(output, 1, BLAKE_DIGEST_SIZE, outFile);
 
     free(input);
     free(output);
