@@ -73,27 +73,27 @@ int Decrypt(char* alg, char* mode, byte* key, int size, char* in,
 int Benchmark(int timer);
 
 #ifndef NO_MD5
-    int Md5Hash(char* in, char* out);
+    int HashMd5(char* in, char* out);
 #endif
 
 #ifndef NO_SHA
-	int ShaHash(char* in, char* out);
+	int HashSha(char* in, char* out);
 #endif
 
 #ifndef NO_SHA256
-	int Sha256Hash(char* in, char* out);
+	int HashSha256(char* in, char* out);
 #endif
 
 #ifdef CYASSL_SHA384
-	int Sha384Hash(char* in, char* out);
+	int HashSha384(char* in, char* out);
 #endif
 
 #ifdef CYASSL_SHA512
-	int Sha512Hash(char* in, char* out);
+	int HashSha512(char* in, char* out);
 #endif
 
 #ifdef HAVE_BLAKE2
-	int Blake2bHash(char* in, char* out, int size);
+	int HashBlake2b(char* in, char* out, int size);
 #endif
 
 #endif

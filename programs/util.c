@@ -296,37 +296,37 @@ int Has(int argc, char** argv)
 	switch(num) {
 #ifndef NO_MD5
         case 0:
-        Md5Hash(in, out);
+        HashMd5(in, out);
             break;
 #endif
 
 #ifndef NO_SHA
         case 1:
-        ShaHash(in, out);
+        HashSha(in, out);
             break;
 #endif
 
 #ifndef NO_SHA256
         case 2:
-        Sha256Hash(in, out);
+        HashSha256(in, out);
             break;
 #endif
 
 #ifdef CYASSL_SHA384
         case 3:
-        Sha384Hash(in, out);
+        HashSha384(in, out);
             break;
 #endif
 
 #ifdef CYASSL_SHA512
         case 4:
-        Sha512Hash(in, out);
+        HashSha512(in, out);
             break;
 #endif
 
 #ifdef HAVE_BLAKE2
         case 5:
-        Blake2bHash(in, out, size);
+        HashBlake2b(in, out, size);
             break;
 #endif
         default :
@@ -1030,7 +1030,7 @@ int Benchmark(int timer)
 }
 
 #ifndef NO_MD5
-int Md5Hash(char* in, char* out)
+int HashMd5(char* in, char* out)
 {
     Md5 hash;
     FILE*  inFile;
@@ -1074,7 +1074,7 @@ int Md5Hash(char* in, char* out)
 #endif /* NO_MD5 */
 
 #ifndef NO_SHA
-int ShaHash(char* in, char* out)
+int HashSha(char* in, char* out)
 {
     Sha hash;
     FILE*  inFile;
@@ -1118,7 +1118,7 @@ int ShaHash(char* in, char* out)
 #endif /* NO_SHA */
 
 #ifndef NO_SHA256
-int Sha256Hash(char* in, char* out)
+int HashSha256(char* in, char* out)
 {
     Sha256 hash;
     FILE*  inFile;
@@ -1162,7 +1162,7 @@ int Sha256Hash(char* in, char* out)
 #endif /* NO_SHA256 */
 
 #ifdef CYASSL_SHA384
-int Sha384Hash(char* in, char* out)
+int HashSha384(char* in, char* out)
 {
     Sha384 hash;
     FILE*  inFile;
@@ -1206,7 +1206,7 @@ int Sha384Hash(char* in, char* out)
 #endif /* CYASSL_SHA384 */
 
 #ifdef CYASSL_SHA512
-int Sha512Hash(char* in, char* out)
+int HashSha512(char* in, char* out)
 {
     Sha512 hash;
     FILE*  inFile;
@@ -1250,7 +1250,7 @@ int Sha512Hash(char* in, char* out)
 #endif /* CYASSL_SHA512 */
 
 #ifdef HAVE_BLAKE2
-int Blake2bHash(char* in, char* out, int size)
+int HashBlake2b(char* in, char* out, int size)
 {
     Blake2b hash;
     FILE*  inFile;
