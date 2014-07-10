@@ -30,6 +30,10 @@
 #include <cyassl/ctaocrypt/aes.h>
 #include <cyassl/ctaocrypt/des3.h>
 
+#ifndef NO_MD5
+    #include <cyassl/ctaocrypt/md5.h>
+#endif
+
 #ifndef NO_SHA
     #include <cyassl/ctaocrypt/sha.h>
 #endif

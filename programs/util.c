@@ -53,7 +53,7 @@ int Enc(int argc, char** argv)
     int      mark = 0;
 
     for (i = 2; i < argc; i++) {
-       if (strcmp(argv[i], "-help") == 0) {
+       if (strcmp(argv[i], "-help") == 0 || argc == 2) {
             printf("\nUSAGE: cyassl encrypt <-algorithm> <-i filename> ");
             printf("[-o filename] [-k password] [-iv IV]\n\n"
                    "Acceptable Algorithms");
@@ -147,7 +147,7 @@ int Dec(int argc, char** argv)
     int      mark = 0;
 
     for (i = 2; i < argc; i++) {
-       if (strcmp(argv[i], "-help") == 0) {
+       if (strcmp(argv[i], "-help") == 0 || argc == 2) {
             printf("\nUSAGE: cyassl decrypt <-algorithm> <-i filename> ");
             printf("[-o filename] [-k password] [-iv IV]\n\n"
                    "Acceptable Algorithms");
@@ -234,7 +234,7 @@ int Has(int argc, char** argv)
 	int outCheck = 0;
 
 	for (i = 2; i < argc; i++) {
-       if (strcmp(argv[i], "-help") == 0) {
+       if (strcmp(argv[i], "-help") == 0 || argc == 2) {
             printf("\nUSAGE: cyassl hash <-algorithm> <-i filename>"
                    " [-o filename]");
             printf(" [-s size](*size use for Blake2b only between 0-64*)\n");
