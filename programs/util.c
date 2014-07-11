@@ -52,15 +52,32 @@ int Enc(int argc, char** argv)
     int      outCheck = 0;
     int      mark = 0;
 
-    for (i = 2; i < argc; i++) {
-       if (strcmp(argv[i], "-help") == 0 || argc == 2) {
+    if (argc == 2) {
+        printf("\nUSAGE: cyassl encrypt <-algorithm> <-i filename> ");
+        printf("[-o filename] [-k password] [-iv IV]\n\n"
+               "Acceptable Algorithms");
+        printf("\n-aes-cbc-128\t\t-aes-cbc-192\t\t-aes-cbc-256\n");
+        printf("-3des-cbc-56\t\t-3des-cbc-112\t\t-3des-cbc-168\n");
+#ifdef HAVE_CAMELLIA
+            printf("-camellia-cbc-128\t-camellia-cbc-192\t"
+                   "-camellia-cbc-256\n");
+#endif
+            printf("\n");
+        return 0;
+    }
+
+    for (i = 2; i < argc+1; i++) {
+       if (strcmp(argv[i], "-help") == 0) {
             printf("\nUSAGE: cyassl encrypt <-algorithm> <-i filename> ");
             printf("[-o filename] [-k password] [-iv IV]\n\n"
                    "Acceptable Algorithms");
             printf("\n-aes-cbc-128\t\t-aes-cbc-192\t\t-aes-cbc-256\n");
             printf("-3des-cbc-56\t\t-3des-cbc-112\t\t-3des-cbc-168\n");
+#ifdef HAVE_CAMELLIA
             printf("-camellia-cbc-128\t-camellia-cbc-192\t"
-                   "-camellia-cbc-256\n\n");
+                   "-camellia-cbc-256\n");
+#endif
+            printf("\n");
             return 0;
         }
     }
@@ -146,15 +163,32 @@ int Dec(int argc, char** argv)
     int      outCheck = 0;
     int      mark = 0;
 
+    if (argc == 2) {
+        printf("\nUSAGE: cyassl decrypt <-algorithm> <-i filename> ");
+        printf("[-o filename] [-k password] [-iv IV]\n\n"
+               "Acceptable Algorithms");
+        printf("\n-aes-cbc-128\t\t-aes-cbc-192\t\t-aes-cbc-256\n");
+        printf("-3des-cbc-56\t\t-3des-cbc-112\t\t-3des-cbc-168\n");
+#ifdef HAVE_CAMELLIA
+            printf("-camellia-cbc-128\t-camellia-cbc-192\t"
+                   "-camellia-cbc-256\n");
+#endif
+            printf("\n");
+        return 0;
+    }
+
     for (i = 2; i < argc; i++) {
-       if (strcmp(argv[i], "-help") == 0 || argc == 2) {
+       if (strcmp(argv[i], "-help") == 0) {
             printf("\nUSAGE: cyassl decrypt <-algorithm> <-i filename> ");
             printf("[-o filename] [-k password] [-iv IV]\n\n"
                    "Acceptable Algorithms");
             printf("\n-aes-cbc-128\t\t-aes-cbc-192\t\t-aes-cbc-256\n");
             printf("-3des-cbc-56\t\t-3des-cbc-112\t\t-3des-cbc-168\n");
+#ifdef HAVE_CAMELLIA
             printf("-camellia-cbc-128\t-camellia-cbc-192\t"
-                   "-camellia-cbc-256\n\n");
+                   "-camellia-cbc-256\n");
+#endif
+            printf("\n");
             return 0;
         }
     }
@@ -226,33 +260,52 @@ int Has(int argc, char** argv)
 	int i = 0;
     char*   in = 0;
     char*   out = 0;
-	char* algs[] = {"-md5","-sha","-sha256","-sha384","-sha512","-blake2b"};
+	char* algs[] = {"-md5","-sha","-sha256"
+#ifdef HAVE_SHA384
+        ,"-sha384"
+#endif
+#ifdef HAVE_SHA512
+        ,"-sha512"
+#endif
+#ifdef HAVE_BLAKE2
+        ,"-blake2b"
+#endif
+    };
 	char* alg;
-	int num = -1;
-    int size = 0;
 	int inCheck = 0;
 	int outCheck = 0;
+    int size = 0;
 
+    if (argc == 2) {
+        printf("\nUSAGE: cyassl hash <-algorithm> <-i filename>"
+               " [-o filename]");
+        printf(" [-s size](*size use for Blake2b only between 0-64*)\n");
+        printf("\nAcceptable Algorithms\n");
+        for (i = 0; i < sizeof(algs)/sizeof(algs[0]); i++) {
+            printf("%s\n", algs[i]);
+        }
+        printf("\n");
+        return 0;
+    }
 	for (i = 2; i < argc; i++) {
-       if (strcmp(argv[i], "-help") == 0 || argc == 2) {
+       if (strcmp(argv[i], "-help") == 0) {
             printf("\nUSAGE: cyassl hash <-algorithm> <-i filename>"
                    " [-o filename]");
             printf(" [-s size](*size use for Blake2b only between 0-64*)\n");
             printf("\nAcceptable Algorithms\n");
-            for (i = 0; i < 6; i++) {
+            for (i = 0; i < sizeof(algs)/sizeof(algs[0]); i++) {
                 printf("%s\n", algs[i]);
             }
             printf("\n");
             return 0;
         }
     } 
-    for (i = 0; i < 6; i++) {
+    for (i = 0; i < sizeof(algs)/sizeof(algs[0]); i++) {
 		if (strcmp(argv[2], algs[i]) == 0) {
 			alg = argv[2];
-			num = i;
 		}
 	}
-	if (num < 0) {
+	if (strcmp(alg, "\0") == 0) {
 		printf("Invalid algorithm\n");
 		return -1;
 	}
@@ -268,16 +321,18 @@ int Has(int argc, char** argv)
             outCheck = 1;
             i++;
         }
-#ifdef HAVE_BLAKE
         else if (strcmp(argv[i], "-s") == 0 && argv[i+1] != NULL) {
+#ifndef HAVE_BLAKE2
+            printf("Sorry, only to be used with Blake2b enabled\n");
+#else
             size = atoi(argv[i+1]);
             if (size <= 0 || size > 64) {
                 printf("Invalid size, Must be between 0-64. Using default.\n");
                 size = BLAKE_DIGEST_SIZE;
             }
+#endif
             i++;
         }
-#endif
         else {
             printf("Unknown argument %s. Ignoring\n", argv[i]);
         }
@@ -293,48 +348,35 @@ int Has(int argc, char** argv)
         strcat(out, ".");
         strcat(out, alg);
     }
-	switch(num) {
+    
 #ifndef NO_MD5
-        case 0:
-        HashMd5(in, out);
-            break;
+    if (strcmp(alg, "md5") == 0) 
+        size = MD5_DIGEST_SIZE;
 #endif
 
 #ifndef NO_SHA
-        case 1:
-        HashSha(in, out);
-            break;
+    if (strcmp(alg, "sha") == 0) 
+        size = SHA_DIGEST_SIZE;
 #endif
 
 #ifndef NO_SHA256
-        case 2:
-        HashSha256(in, out);
-            break;
+    if (strcmp(alg, "sha256") == 0) 
+        size = SHA256_DIGEST_SIZE;
 #endif
 
 #ifdef CYASSL_SHA384
-        case 3:
-        HashSha384(in, out);
-            break;
+    if (strcmp(alg, "sha384") == 0)
+        size = SHA384_DIGEST_SIZE;
 #endif
 
 #ifdef CYASSL_SHA512
-        case 4:
-        HashSha512(in, out);
-            break;
+    if (strcmp(alg, "sha512") == 0)
+        size = SHA512_DIGEST_SIZE;
 #endif
 
-#ifdef HAVE_BLAKE2
-        case 5:
-        HashBlake2b(in, out, size);
-            break;
-#endif
-        default :
-        printf("Invalid algorithm selection.\n");
-        printf("Are you sure this option has been configured?\n");
-    }
+    Hash(in, out, alg, size);
 
-    if (outCheck == 0)
+    if (outCheck == 1)
     	free(out);
 
 	return ret;
@@ -1030,271 +1072,83 @@ int Benchmark(int timer)
     return ret;
 }
 
-#ifndef NO_MD5
-int HashMd5(char* in, char* out)
+int Hash(char* in, char* out, char* alg, int size)
 {
-    Md5 hash;
     FILE*  inFile;
     FILE*  outFile;
 
     byte*   input;
-    byte*   output;
+    byte   output[size];
 
     int length;
     int ret;
 
-    InitMd5(&hash);
-
     inFile = fopen(in, "r");
     if (inFile == NULL) {
         printf("Input file does not exist\n");
-        return -1;
+        ret = -1;
     }
-    outFile = fopen(out, "w");
+    else {
+        fseek(inFile, 0, SEEK_END);
+        length = ftell(inFile);
+        fseek(inFile, 0, SEEK_SET);
+        input = malloc(length);
+        if (input == NULL) {
+            printf("Failed to create input buffer\n");
+            ret = -2;
+        }
+        else {
+            ret = fread(input, 1, length, inFile);
+            if (ret != length) {
+                printf("Failed to read from input\n");
+                ret = -3;
+            }
+            else {
+                if (strcmp(alg, "md5") == 0) 
+                    ret = Md5Hash(input, length, output);
+                
+                else if (strcmp(alg, "sha") == 0) 
+                    ret = ShaHash(input, length, output);
+                
+                else if (strcmp(alg, "sha256") == 0) 
+                    ret = Sha256Hash(input, length, output);
+                
+#ifdef HAVE_SHA384
+                else if (strcmp(alg, "sha384") == 0) 
+                    ret = Sha384Hash(input, length, output);
+#endif
 
-    fseek(inFile, 0, SEEK_END);
-    length = ftell(inFile);
-    fseek(inFile, 0, SEEK_SET);
-    input = malloc(length);
-    output = malloc(MD5_DIGEST_SIZE);
-
-    ret = fread(input, 1, length, inFile);
-
-    Md5Update(&hash, input, length);
-    Md5Final(&hash, output);
-
-    fwrite(output, 1, MD5_DIGEST_SIZE, outFile);
-
-    free(input);
-    free(output);
-    fclose(inFile);
-    fclose(outFile);
-
-    return ret;
-}
-#endif /* NO_MD5 */
-
-#ifndef NO_SHA
-int HashSha(char* in, char* out)
-{
-    Sha hash;
-    FILE*  inFile;
-    FILE*  outFile;
-
-    byte*   input;
-    byte*   output;
-
-    int length;
-    int ret;
-
-    InitSha(&hash);
-
-    inFile = fopen(in, "r");
-    if (inFile == NULL) {
-        printf("Input file does not exist\n");
-        return -1;
-    }
-    outFile = fopen(out, "w");
-
-    fseek(inFile, 0, SEEK_END);
-    length = ftell(inFile);
-    fseek(inFile, 0, SEEK_SET);
-    input = malloc(length);
-    output = malloc(SHA_DIGEST_SIZE);
-
-    ret = fread(input, 1, length, inFile);
-
-    ShaUpdate(&hash, input, length);
-    ShaFinal(&hash, output);
-
-    fwrite(output, 1, SHA_DIGEST_SIZE, outFile);
-
-    free(input);
-    free(output);
-    fclose(inFile);
-    fclose(outFile);
-
-    return ret;
-}
-#endif /* NO_SHA */
-
-#ifndef NO_SHA256
-int HashSha256(char* in, char* out)
-{
-    Sha256 hash;
-    FILE*  inFile;
-    FILE*  outFile;
-
-    byte*   input;
-    byte*   output;
-
-    int length;
-    int ret;
-
-    InitSha256(&hash);
-
-    inFile = fopen(in, "r");
-    if (inFile == NULL) {
-        printf("Input file does not exist\n");
-        return -1;
-    }
-    outFile = fopen(out, "w");
-
-    fseek(inFile, 0, SEEK_END);
-    length = ftell(inFile);
-    fseek(inFile, 0, SEEK_SET);
-    input = malloc(length);
-    output = malloc(SHA256_DIGEST_SIZE);
-
-    ret = fread(input, 1, length, inFile);
-
-    Sha256Update(&hash, input, length);
-    Sha256Final(&hash, output);
-
-    fwrite(output, 1, SHA256_DIGEST_SIZE, outFile);
-
-    free(input);
-    free(output);
-    fclose(inFile);
-    fclose(outFile);
-
-    return ret;
-}
-#endif /* NO_SHA256 */
-
-#ifdef CYASSL_SHA384
-int HashSha384(char* in, char* out)
-{
-    Sha384 hash;
-    FILE*  inFile;
-    FILE*  outFile;
-
-    byte*   input;
-    byte*   output;
-
-    int length;
-    int ret;
-
-    InitSha384(&hash);
-
-    inFile = fopen(in, "r");
-    if (inFile == NULL) {
-        printf("Input file does not exist\n");
-        return -1;
-    }
-    outFile = fopen(out, "w");
-
-    fseek(inFile, 0, SEEK_END);
-    length = ftell(inFile);
-    fseek(inFile, 0, SEEK_SET);
-    input = malloc(length);
-    output = malloc(SHA384_DIGEST_SIZE);
-
-    ret = fread(input, 1, length, inFile);
-
-    Sha384Update(&hash, input, length);
-    Sha384Final(&hash, output);
-
-    fwrite(output, 1, SHA384_DIGEST_SIZE, outFile);
-
-    free(input);
-    free(output);
-    fclose(inFile);
-    fclose(outFile);
-
-    return ret;
-}
-#endif /* CYASSL_SHA384 */
-
-#ifdef CYASSL_SHA512
-int HashSha512(char* in, char* out)
-{
-    Sha512 hash;
-    FILE*  inFile;
-    FILE*  outFile;
-
-    byte*   input;
-    byte*   output;
-
-    int length;
-    int ret;
-
-    InitSha512(&hash);
-
-    inFile = fopen(in, "r");
-    if (inFile == NULL) {
-        printf("Input file does not exist\n");
-        return -1;
-    }
-    outFile = fopen(out, "w");
-
-    fseek(inFile, 0, SEEK_END);
-    length = ftell(inFile);
-    fseek(inFile, 0, SEEK_SET);
-    input = malloc(length);
-    output = malloc(SHA512_DIGEST_SIZE);
-
-    ret = fread(input, 1, length, inFile);
-
-    Sha512Update(&hash, input, length);
-    Sha512Final(&hash, output);
-
-    fwrite(output, 1, SHA512_DIGEST_SIZE, outFile);
-
-    free(input);
-    free(output);
-    fclose(inFile);
-    fclose(outFile);
-
-    return ret;
-}
-#endif /* CYASSL_SHA512 */
+#ifdef HAVE_SHA512
+                else if (strcmp(alg, "sha512") == 0) 
+                    ret = Sha512Hash(input, length, output);
+#endif
 
 #ifdef HAVE_BLAKE2
-int HashBlake2b(char* in, char* out, int size)
-{
-    Blake2b hash;
-    FILE*  inFile;
-    FILE*  outFile;
-
-    byte*   input;
-    byte*   output;
-
-    int length;
-    int ret;
-
-    if (size == 0) 
-    {
-        size = BLAKE_DIGEST_SIZE;
+                else if (strcmp(alg, "blake2b") == 0) { 
+                    Blake2b hash;
+                    InitBlake2b(&hash, size);
+                    Blake2bUpdate(&hash, input, length);
+                    Blake2bFinal(&hash, output, size);
+                }
+#endif
+                if (ret == 0) {
+                    if (strcmp(out, "\0") != 0) {
+                        outFile = fopen(out, "w");
+                        if (outFile == NULL) {
+                            printf("Output file does not exist\n");
+                            ret = -4;
+                        }
+                        fwrite(output, 1, size, outFile);
+                        fclose(outFile);
+                    }
+                    else
+                        printf("%s\n", output);
+                }
+                free(input);
+            }
+        }
+        fclose(inFile);
     }
-    InitBlake2b(&hash, size);
-
-    inFile = fopen(in, "r");
-    if (inFile == NULL) {
-            printf("Input file does not exist\n");
-            return -1;
-    }
-    outFile = fopen(out, "w");
-
-    fseek(inFile, 0, SEEK_END);
-    length = ftell(inFile);
-    fseek(inFile, 0, SEEK_SET);
-    input = malloc(length);
-    output = malloc(size);
-
-    ret = fread(input, 1, length, inFile);
-   
-    Blake2bUpdate(&hash, input, length);
-    Blake2bFinal(&hash, output, size);
-
-    fwrite(output, 1, BLAKE_DIGEST_SIZE, outFile);
-
-    free(input);
-    free(output);
-    fclose(inFile);
-    fclose(outFile);
-
     return ret;
 }
-#endif /* HAVE_BLAKE2 */
 
