@@ -655,21 +655,9 @@ int Encrypt(char* alg, char* mode, byte* key, int size, char* in, char* out,
 		ret = Des3_SetKey(&des3, key, iv, DES_ENCRYPTION);
 	    if (ret != 0)
 	        return -1011;
-	    if (strcmp(mode, "cbc") == 0) {
-            ret = Des3_CbcEncrypt(&des3, output, input, length);
-	        if (ret != 0)
-	            return -1012;
-        }
-/*        else if (strcmp(mode, "ecb") == 0) {
-            ret = Des_EcbEncrypt(&des3, output, input, length);
-            if (ret != 0) {
-                return -1013;
-            }
-        }
-*/        else {
-            printf("Incompatible mode\n");
-            return -1014;
-        }
+        ret = Des3_CbcEncrypt(&des3, output, input, length);
+	    if (ret != 0)
+	        return -1012;
 	}
 
 #ifdef HAVE_CAMELLIA
