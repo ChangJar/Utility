@@ -53,31 +53,13 @@ int Enc(int argc, char** argv)
     int      mark = 0;
 
     if (argc == 2) {
-        printf("\nUSAGE: cyassl encrypt <-algorithm> <-i filename> ");
-        printf("[-o filename] [-k password] [-iv IV]\n\n"
-               "Acceptable Algorithms");
-        printf("\n-aes-cbc-128\t\t-aes-cbc-192\t\t-aes-cbc-256\n");
-        printf("-3des-cbc-56\t\t-3des-cbc-112\t\t-3des-cbc-168\n");
-#ifdef HAVE_CAMELLIA
-            printf("-camellia-cbc-128\t-camellia-cbc-192\t"
-                   "-camellia-cbc-256\n");
-#endif
-            printf("\n");
+        EncHelp();
         return 0;
     }
 
     for (i = 2; i < argc; i++) {
         if (strcmp(argv[i], "-help") == 0) {
-            printf("\nUSAGE: cyassl encrypt <-algorithm> <-i filename> ");
-            printf("[-o filename] [-k password] [-iv IV]\n\n"
-                   "Acceptable Algorithms");
-            printf("\n-aes-cbc-128\t\t-aes-cbc-192\t\t-aes-cbc-256\n");
-            printf("-3des-cbc-56\t\t-3des-cbc-112\t\t-3des-cbc-168\n");
-#ifdef HAVE_CAMELLIA
-            printf("-camellia-cbc-128\t-camellia-cbc-192\t"
-                   "-camellia-cbc-256\n");
-#endif
-            printf("\n");
+            EncHelp();
             return 0;
         }
     }
@@ -164,32 +146,14 @@ int Dec(int argc, char** argv)
     int      mark = 0;
 
     if (argc == 2) {
-        printf("\nUSAGE: cyassl decrypt <-algorithm> <-i filename> ");
-        printf("[-o filename] [-k password] [-iv IV]\n\n"
-               "Acceptable Algorithms");
-        printf("\n-aes-cbc-128\t\t-aes-cbc-192\t\t-aes-cbc-256\n");
-        printf("-3des-cbc-56\t\t-3des-cbc-112\t\t-3des-cbc-168\n");
-#ifdef HAVE_CAMELLIA
-            printf("-camellia-cbc-128\t-camellia-cbc-192\t"
-                   "-camellia-cbc-256\n");
-#endif
-            printf("\n");
+        DecHelp();
         return 0;
     }
 
     for (i = 2; i < argc; i++) {
        if (strcmp(argv[i], "-help") == 0) {
-            printf("\nUSAGE: cyassl decrypt <-algorithm> <-i filename> ");
-            printf("[-o filename] [-k password] [-iv IV]\n\n"
-                   "Acceptable Algorithms");
-            printf("\n-aes-cbc-128\t\t-aes-cbc-192\t\t-aes-cbc-256\n");
-            printf("-3des-cbc-56\t\t-3des-cbc-112\t\t-3des-cbc-168\n");
-#ifdef HAVE_CAMELLIA
-            printf("-camellia-cbc-128\t-camellia-cbc-192\t"
-                   "-camellia-cbc-256\n");
-#endif
-            printf("\n");
-            return 0;
+           DecHelp();
+           return 0;
         }
     }
 
@@ -252,6 +216,40 @@ int Dec(int argc, char** argv)
         free(iv);
     }
     return ret;
+}
+
+void EncHelp()
+{
+    printf("\nUSAGE: cyassl encrypt <-algorithm> <-i filename> ");
+    printf("[-o filename] [-k password] [-iv IV]\n\n"
+           "Acceptable Algorithms");
+    printf("\n-aes-cbc-128\t\t-aes-cbc-192\t\t-aes-cbc-256\n");
+#ifdef CYASSL_AES_COUNTER
+    printf("-aes-ctr-128\t\t-aes-ctr-192\t\t-aes-ctr-256\n");
+#endif
+    printf("-3des-cbc-56\t\t-3des-cbc-112\t\t-3des-cbc-168\n");
+#ifdef HAVE_CAMELLIA
+    printf("-camellia-cbc-128\t-camellia-cbc-192\t"
+           "-camellia-cbc-256\n");
+#endif
+    printf("\n");
+}
+
+void DecHelp()
+{
+    printf("\nUSAGE: cyassl decrypt <-algorithm> <-i filename> ");
+    printf("[-o filename] [-k password] [-iv IV]\n\n"
+           "Acceptable Algorithms");
+    printf("\n-aes-cbc-128\t\t-aes-cbc-192\t\t-aes-cbc-256\n");
+#ifdef CYASSL_AES_COUNTER
+    printf("-aes-ctr-128\t\t-aes-ctr-192\t\t-aes-ctr-256\n");
+#endif
+    printf("-3des-cbc-56\t\t-3des-cbc-112\t\t-3des-cbc-168\n");
+#ifdef HAVE_CAMELLIA
+    printf("-camellia-cbc-128\t-camellia-cbc-192\t"
+           "-camellia-cbc-256\n");
+#endif
+    printf("\n");
 }
 
 int Has(int argc, char** argv)
@@ -416,16 +414,27 @@ int GetAlgorithm(char* name, char** alg, char** mode, int* size)
     int     nameCheck = 0;
 	int     modeCheck = 0;
     char*	sz = 0;
-    char* acceptAlgs[] = {"aes", "3des", "camellia"};
+    char* acceptAlgs[] = {"aes", "3des"
+#ifdef HAVE_CAMELLIA
+    , "camellia"
+#endif
+    };
+    char* acceptMode[] = {"cbc"
+#ifdef CYASSL_AES_COUNTER
+        , "ctr"
+#endif
+    };
 
 	*alg = strtok(name, "-");
-    for (i = 0; i < 3; i++) {
+    for (i = 0; i < sizeof(acceptAlgs)/sizeof(acceptAlgs[0]); i++) {
         if (strcmp(*alg, acceptAlgs[i]) == 0 )
             nameCheck = 1;
     }
     *mode = strtok(NULL, "-");
-    if (strcmp(*mode, "cbc") == 0)
-        modeCheck = 1;
+    for (i = 0; i < sizeof(acceptMode)/sizeof(acceptMode[0]); i++) {
+        if (strcmp(*mode, acceptMode[i]) == 0)
+            modeCheck = 1;
+    }
 
     if (nameCheck == 0 || modeCheck == 0) {
         printf("Invalid entry. Please enter -help for help\n");
@@ -466,11 +475,6 @@ int GetAlgorithm(char* name, char** alg, char** mode, int* size)
 		printf("Invalid algorithm: %s\n", *alg);
 		ret = -1;
 	}
-    if (strcmp(*mode, "cbc") != 0) {
-        printf("CBC is currently the only supported encryption mode\n");
-        printf("Others to be implemented later.\n");
-        ret = -1;
-    }
 	return ret;
 }
 
@@ -634,28 +638,58 @@ int Encrypt(char* alg, char* mode, byte* key, int size, char* in, char* out,
 
     /* sets key encrypts the message to ouput from input length + padding */
     if (strcmp(alg, "aes") == 0) {
-		ret = AesSetKey(&aes, key, AES_BLOCK_SIZE, iv, AES_ENCRYPTION);
-	    if (ret != 0)
-	        return -1001;
-	    ret = AesCbcEncrypt(&aes, output, input, length);
-	    if (ret != 0)
-	        return -1005;
+        if (strcmp(mode, "cbc") == 0) {
+		    ret = AesSetKey(&aes, key, AES_BLOCK_SIZE, iv, AES_ENCRYPTION);
+	        if (ret != 0)
+	            return -1001;
+	        ret = AesCbcEncrypt(&aes, output, input, length);
+	        if (ret != 0)
+    	        return -1002;
+        }
+#ifdef CYASSL_AES_COUNTER
+        else if (strcmp(mode, "ctr") == 0) {
+            AesSetKeyDirect(&aes, key, AES_BLOCK_SIZE, iv, AES_ENCRYPTION);
+            AesCtrEncrypt(&aes, output, input, length);
+        }
+#endif
+        else {
+            printf("Incompatible mode\n");
+            return -1004;
+        }
 	}
 	if (strcmp(alg, "3des") == 0) {
 		ret = Des3_SetKey(&des3, key, iv, DES_ENCRYPTION);
 	    if (ret != 0)
-	        return -1002;
-	    ret = Des3_CbcEncrypt(&des3, output, input, length);
-	    if (ret != 0)
-	        return -1005;
+	        return -1011;
+	    if (strcmp(mode, "cbc") == 0) {
+            ret = Des3_CbcEncrypt(&des3, output, input, length);
+	        if (ret != 0)
+	            return -1012;
+        }
+/*        else if (strcmp(mode, "ecb") == 0) {
+            ret = Des_EcbEncrypt(&des3, output, input, length);
+            if (ret != 0) {
+                return -1013;
+            }
+        }
+*/        else {
+            printf("Incompatible mode\n");
+            return -1014;
+        }
 	}
 
 #ifdef HAVE_CAMELLIA
 	if (strcmp(alg, "camellia") == 0) {
 	    ret = CamelliaSetKey(&camellia, key, block, iv);
 	    if (ret != 0)
-	        return -1001;
-	    CamelliaCbcEncrypt(&camellia, output, input, length);
+	        return -1021;
+        if (strcmp(mode, "cbc") == 0) {
+	        CamelliaCbcEncrypt(&camellia, output, input, length);
+        }
+        else {
+            printf("Incompatible mode\n");
+            return -1022;
+        }
 	}
 #endif /* HAVE_CAMELLIA */
 
@@ -750,12 +784,20 @@ int Decrypt(char* alg, char* mode, byte* key, int size, char* in, char* out,
     }
     /* sets key decrypts the message to ouput from input length */
     if (strcmp(alg, "aes") == 0) {
-		ret = AesSetKey(&aes, key, AES_BLOCK_SIZE, iv, AES_DECRYPTION);
-	    if (ret != 0)
-	        return -1001;
-	    ret = AesCbcDecrypt(&aes, output, input, length);
-	    if (ret != 0)
-	        return -1005;
+        if (strcmp(mode, "cbc") == 0) {
+		    ret = AesSetKey(&aes, key, AES_BLOCK_SIZE, iv, AES_DECRYPTION);
+	        if (ret != 0)
+	            return -1001;
+	        ret = AesCbcDecrypt(&aes, output, input, length);
+	        if (ret != 0)
+	            return -1005;
+        }
+#ifdef CYASSL_AES_COUNTER
+        else if (strcmp(mode, "ctr") == 0) {
+            AesSetKeyDirect(&aes, key, AES_BLOCK_SIZE, iv, AES_ENCRYPTION);
+            AesCtrEncrypt(&aes, output, input, length);
+        }
+#endif
 	}
 	if (strcmp(alg, "3des") == 0) {
 		ret = Des3_SetKey(&des3, key, iv, DES_DECRYPTION);
