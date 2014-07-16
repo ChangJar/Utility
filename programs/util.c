@@ -53,13 +53,13 @@ int Enc(int argc, char** argv)
     int      mark = 0;
 
     if (argc == 2) {
-        EncHelp();
+        Help("encrypt");
         return 0;
     }
 
     for (i = 2; i < argc; i++) {
         if (strcmp(argv[i], "-help") == 0) {
-            EncHelp();
+            Help("encrypt");
             return 0;
         }
     }
@@ -146,13 +146,13 @@ int Dec(int argc, char** argv)
     int      mark = 0;
 
     if (argc == 2) {
-        DecHelp();
+        Help("decrypt");
         return 0;
     }
 
     for (i = 2; i < argc; i++) {
        if (strcmp(argv[i], "-help") == 0) {
-           DecHelp();
+           Help("decrypt");
            return 0;
         }
     }
@@ -218,38 +218,46 @@ int Dec(int argc, char** argv)
     return ret;
 }
 
-void EncHelp()
+void Help(char* name)
 {
-    printf("\nUSAGE: cyassl encrypt <-algorithm> <-i filename> ");
-    printf("[-o filename] [-k password] [-iv IV]\n\n"
-           "Acceptable Algorithms");
-    printf("\n-aes-cbc-128\t\t-aes-cbc-192\t\t-aes-cbc-256\n");
-#ifdef CYASSL_AES_COUNTER
-    printf("-aes-ctr-128\t\t-aes-ctr-192\t\t-aes-ctr-256\n");
+    if (strcmp(name, "hash") == 0)
+    {
+        int i;
+        char* algs[] = {"-md5","-sha","-sha256"
+#ifdef CYASSL_SHA384
+        ,"-sha384"
 #endif
-    printf("-3des-cbc-56\t\t-3des-cbc-112\t\t-3des-cbc-168\n");
-#ifdef HAVE_CAMELLIA
-    printf("-camellia-cbc-128\t-camellia-cbc-192\t"
-           "-camellia-cbc-256\n");
+#ifdef CYASSL_SHA512
+        ,"-sha512"
 #endif
-    printf("\n");
-}
+#ifdef HAVE_BLAKE2
+        ,"-blake2b"
+#endif
+        };
 
-void DecHelp()
-{
-    printf("\nUSAGE: cyassl decrypt <-algorithm> <-i filename> ");
-    printf("[-o filename] [-k password] [-iv IV]\n\n"
-           "Acceptable Algorithms");
-    printf("\n-aes-cbc-128\t\t-aes-cbc-192\t\t-aes-cbc-256\n");
+        printf("\nUSAGE: cyassl hash <-algorithm> <-i filename> [-o filename]");
+        printf(" [-s size](*size use for Blake2b only between 1-64*)\n");
+        printf("\nAcceptable Algorithms\n");
+        for (i = 0; i < sizeof(algs)/sizeof(algs[0]); i++) {
+            printf("%s\n", algs[i]);
+        }
+        printf("\n");
+    }
+    else {
+        printf("\nUSAGE: cyassl %s <-algorithm> <-i filename> ", name);
+        printf("[-o filename] [-k password] [-iv IV]\n\n"
+               "Acceptable Algorithms");
+        printf("\n-aes-cbc-128\t\t-aes-cbc-192\t\t-aes-cbc-256\n");
 #ifdef CYASSL_AES_COUNTER
-    printf("-aes-ctr-128\t\t-aes-ctr-192\t\t-aes-ctr-256\n");
+        printf("-aes-ctr-128\t\t-aes-ctr-192\t\t-aes-ctr-256\n");
 #endif
-    printf("-3des-cbc-56\t\t-3des-cbc-112\t\t-3des-cbc-168\n");
+        printf("-3des-cbc-56\t\t-3des-cbc-112\t\t-3des-cbc-168\n");
 #ifdef HAVE_CAMELLIA
-    printf("-camellia-cbc-128\t-camellia-cbc-192\t"
-           "-camellia-cbc-256\n");
+        printf("-camellia-cbc-128\t-camellia-cbc-192\t"
+               "-camellia-cbc-256\n");
 #endif
-    printf("\n");
+        printf("\n");
+    }
 }
 
 int Has(int argc, char** argv)
@@ -279,26 +287,12 @@ int Has(int argc, char** argv)
 #endif
 
     if (argc == 2) {
-        printf("\nUSAGE: cyassl hash <-algorithm> <-i filename>"
-               " [-o filename]");
-        printf(" [-s size](*size use for Blake2b only between 1-64*)\n");
-        printf("\nAcceptable Algorithms\n");
-        for (i = 0; i < sizeof(algs)/sizeof(algs[0]); i++) {
-            printf("%s\n", algs[i]);
-        }
-        printf("\n");
+        Help("hash");
         return 0;
     }
 	for (i = 2; i < argc; i++) {
        if (strcmp(argv[i], "-help") == 0) {
-            printf("\nUSAGE: cyassl hash <-algorithm> <-i filename>"
-                   " [-o filename]");
-            printf(" [-s size](*size use for Blake2b only between 1-64*)\n");
-            printf("\nAcceptable Algorithms\n");
-            for (i = 0; i < sizeof(algs)/sizeof(algs[0]); i++) {
-                printf("%s\n", algs[i]);
-            }
-            printf("\n");
+            Help("hash");
             return 0;
         }
     } 

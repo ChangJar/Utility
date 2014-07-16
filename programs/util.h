@@ -63,8 +63,7 @@
 
 int Enc(int argc, char** argv);
 int Dec(int argc, char** argv);
-void EncHelp();
-void DecHelp();
+void Help(char* name);
 int Has(int argc, char** argv);
 int Bench(int argc, char** argv);
 int GetAlgorithm(char* name, char** alg, char** mode, int* size);
