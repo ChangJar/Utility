@@ -317,8 +317,8 @@ int Has(int argc, char** argv)
 
 	for (i = 3; i < argc; i++) {
         if (strcmp(argv[i], "-i") == 0 && argv[i+1] != NULL) {
-            in = argv[i+1];
-//printf("arg \"%s\" hex: %02x i:%d \n", in, in, i);            
+            in = malloc(sizeof(argv[i+1]));
+            strcpy(in,  &argv[i+1][0]);
             inCheck = 1;
             i++;
         }
@@ -373,6 +373,8 @@ int Has(int argc, char** argv)
 #endif
 
     Hash(in, out, alg, size);
+
+    free(in);
 
 	return ret;
 }
@@ -598,7 +600,7 @@ int Encrypt(char* alg, char* mode, byte* key, int size, char* in, char* out,
 	}
 	else {
 		/* else use user entered data to encrypt */
-		inputLength = sizeof(in);
+		inputLength = strlen(in);
 		length = inputLength;
 		/* pads the length until it matches a block / increases pad number */
 	    while (length % block != 0) {
@@ -1140,7 +1142,6 @@ int Hash(char* in, char* out, char* alg, int size)
                 for (i = 0; i < size; i++) {
                     fprintf(outFile, "%02x", output[i]);
                 }
-                printf("\n");
                 fclose(outFile);
             }
         }
@@ -1151,9 +1152,6 @@ int Hash(char* in, char* out, char* alg, int size)
             }
             printf("\n");
         }
-    }
-    else {
-        printf("FUCK YOU\n");
     }
     free(input);
     free(output);
