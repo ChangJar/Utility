@@ -66,6 +66,9 @@ int Enc(int argc, char** argv)
 
     name = argv[2];
     block = GetAlgorithm(name, &alg, &mode, &size);
+if (strcmp(mode, "gcm") == 0) {
+    printf("WARNING: gcm not currently performing properly.\n");
+}    
     if (block != -1) {
         key = malloc(size);
         iv = malloc(block);
@@ -223,7 +226,16 @@ void Help(char* name)
     if (strcmp(name, "hash") == 0)
     {
         int i;
-        char* algs[] = {"-md5","-sha","-sha256"
+        char* algs[] = {
+#ifndef NO_MD5
+            "-md5"
+#endif
+#ifndef NO_SHA
+            ,"-sha"
+#endif
+#ifndef NO_SHA256
+            ,"-sha256"
+#endif
 #ifdef CYASSL_SHA384
         ,"-sha384"
 #endif
@@ -243,15 +255,64 @@ void Help(char* name)
         }
         printf("\n");
     }
+    else if (strcmp(name, "bench") == 0) {
+        int i;
+        char* algs[] = {
+#ifndef NO_AES
+            "-aes-cbc"
+#endif
+#ifdef CYASSL_AES_COUNTER
+            , "-aes-ctr"
+#endif
+#ifndef NO_DES3
+            , "-3des"
+#endif
+#ifdef HAVE_CAMELLIA
+            , "-camellia"
+#endif
+#ifndef NO_MD5
+            , "-md5"
+#endif
+#ifndef NO_SHA
+            , "-sha"
+#endif
+#ifndef NO_SHA256
+            , "-sha256"
+#endif
+#ifdef CYASSL_SHA384
+            , "-sha384"
+#endif
+#ifdef CYASSL_SHA512
+            , "-sha512"
+#endif
+#ifdef HAVE_BLAKE2
+            , "-blake2b"
+#endif
+        };
+        printf("\nUsage: cyassl benchmark [-t timer(1-10)] [-alg]\n");
+        printf("\nAvailable tests: (-all to test all)\n");
+
+        for(i = 0; i < sizeof(algs)/sizeof(algs[0]); i++) {
+            printf("%s\n", algs[i]);
+        }
+        printf("\n");
+    }
     else {
         printf("\nUSAGE: cyassl %s <-algorithm> <-i filename> ", name);
         printf("[-o filename] [-k password] [-iv IV]\n\n"
                "Acceptable Algorithms");
+#ifndef NO_AES
         printf("\n-aes-cbc-128\t\t-aes-cbc-192\t\t-aes-cbc-256\n");
+#endif
 #ifdef CYASSL_AES_COUNTER
         printf("-aes-ctr-128\t\t-aes-ctr-192\t\t-aes-ctr-256\n");
 #endif
+#ifdef HAVE_AESGCM
+        printf("-aes-gcm-128\t\t-aes-gcm-192\t\t-aes-gcm-256\n");
+#endif
+#ifndef NO_DES3
         printf("-3des-cbc-56\t\t-3des-cbc-112\t\t-3des-cbc-168\n");
+#endif
 #ifdef HAVE_CAMELLIA
         printf("-camellia-cbc-128\t-camellia-cbc-192\t"
                "-camellia-cbc-256\n");
@@ -266,7 +327,16 @@ int Has(int argc, char** argv)
 	int i = 0;
     char*   in = 0;
     char*   out = 0;
-	char* algs[] = {"-md5","-sha","-sha256"
+	char* algs[] = {
+#ifndef NO_MD5
+        "-md5"
+#endif
+#ifndef NO_SHA
+        ,"-sha"
+#endif
+#ifndef NO_SHA256
+        ,"-sha256"
+#endif
 #ifdef CYASSL_SHA384
         ,"-sha384"
 #endif
@@ -276,7 +346,7 @@ int Has(int argc, char** argv)
 #ifdef HAVE_BLAKE2
         ,"-blake2b"
 #endif
-    };
+        };
 
 	char* alg;
     int algCheck = 0;
@@ -376,13 +446,55 @@ int Bench(int argc, char** argv)
     int ret = 0;
     int time = 3;
     int i = 0;
+    int j = 0;
+    char* algs[] = {
+#ifndef NO_AES
+            "-aes-cbc"
+#endif
+#ifdef CYASSL_AES_COUNTER
+            , "-aes-ctr"
+#endif
+#ifndef NO_DES3
+            , "-3des"
+#endif
+#ifdef HAVE_CAMELLIA
+            , "-camellia"
+#endif
+#ifndef NO_MD5
+            , "-md5"
+#endif
+#ifndef NO_SHA
+            , "-sha"
+#endif
+#ifndef NO_SHA256
+            , "-sha256"
+#endif
+#ifdef CYASSL_SHA384
+            , "-sha384"
+#endif
+#ifdef CYASSL_SHA512
+            , "-sha512"
+#endif
+#ifdef HAVE_BLAKE2
+            , "-blake2b"
+#endif
+        };
+
+    int option[sizeof(algs)/sizeof(algs[0])] = {0};
+    int optionCheck = 0;
 
     for (i = 2; i < argc; i++) {
         if (strcmp(argv[i], "-help") == 0) {
-            printf("\nUsage: cyassl benchmark [-t timer(1-10)]\nCurrently ");
-            printf("tests all available features of the cyassl utility.\n\n");
+            Help("bench");
             return -1;
         }
+        for (j = 0; j < sizeof(algs)/sizeof(algs[0]); j++) {
+            if (strcmp(argv[i], algs[j]) == 0) {
+                option[j] = 1;    
+                optionCheck = 1;
+            }
+        }
+
         if (strcmp(argv[i], "-t") == 0 && argv[i+1] != NULL) {
             time = atoi(argv[i+1]);
             if (time < 1 || time > 10) {
@@ -391,13 +503,19 @@ int Bench(int argc, char** argv)
             }
             i++;
         }
-        else {
-            printf("Unknown argument %s. Ignoring\n", argv[i]);
+        if (strcmp(argv[i], "-all") == 0) {
+            for (j = 0; j < sizeof(algs)/sizeof(algs[0]); j++) {
+                option[j] = 1;
+                optionCheck = 1;
+            }
         }
     }
-    printf("\nTesting for %d seconds each\n", time);
-    ret = Benchmark(time);
-
+    if (optionCheck != 1)
+        Help("bench");
+    else {
+        printf("\nTesting for %d second(s)\n", time);
+        ret = Benchmark(time, option);
+    }
     return ret;
 }
 
@@ -408,14 +526,23 @@ int GetAlgorithm(char* name, char** alg, char** mode, int* size)
     int     nameCheck = 0;
 	int     modeCheck = 0;
     char*	sz = 0;
-    char* acceptAlgs[] = {"aes", "3des"
-#ifdef HAVE_CAMELLIA
-    , "camellia"
+    char* acceptAlgs[] = {
+#ifndef NO_AES
+        "aes"
 #endif
-    };
+#ifndef NO_DES3
+        , "3des"
+#endif
+#ifdef HAVE_CAMELLIA
+        , "camellia"
+#endif
+                        };
     char* acceptMode[] = {"cbc"
 #ifdef CYASSL_AES_COUNTER
         , "ctr"
+#endif
+#ifdef HAVE_AESGCM
+        , "gcm"
 #endif
     };
 
@@ -437,6 +564,7 @@ int GetAlgorithm(char* name, char** alg, char** mode, int* size)
 
 	sz = strtok(NULL, "-");
 	*size = atoi(sz);
+#ifndef NO_AES
 	if (strcmp(*alg, "aes") == 0) {
 		ret = AES_BLOCK_SIZE;
         if (*size != 128 && *size != 192 && *size != 256) {
@@ -445,6 +573,8 @@ int GetAlgorithm(char* name, char** alg, char** mode, int* size)
             ret = -1;
         }
 	}
+#endif
+#ifndef NO_DES3
 	else if (strcmp(*alg, "3des") == 0) {
 		ret = DES3_BLOCK_SIZE;
         if (*size != 56 && *size != 112 && *size != 168) {
@@ -453,7 +583,7 @@ int GetAlgorithm(char* name, char** alg, char** mode, int* size)
             ret = -1;
         }
 	}
-
+#endif
 #ifdef HAVE_CAMELLIA
 	else if (strcmp(*alg, "camellia") == 0) {
 	    ret = CAMELLIA_BLOCK_SIZE;
@@ -631,6 +761,7 @@ int Encrypt(char* alg, char* mode, byte* key, int size, char* in, char* out,
         return -1040;
 
     /* sets key encrypts the message to ouput from input length + padding */
+#ifndef NO_AES
     if (strcmp(alg, "aes") == 0) {
         if (strcmp(mode, "cbc") == 0) {
 		    ret = AesSetKey(&aes, key, AES_BLOCK_SIZE, iv, AES_ENCRYPTION);
@@ -646,11 +777,30 @@ int Encrypt(char* alg, char* mode, byte* key, int size, char* in, char* out,
             AesCtrEncrypt(&aes, output, input, length);
         }
 #endif
+#ifdef HAVE_AESGCM
+        else if (strcmp(mode, "gcm") == 0) {
+            const byte a[] =
+            {
+                0xfe, 0xed, 0xfa, 0xce, 0xde, 0xad, 0xbe, 0xef,
+                0xfe, 0xed, 0xfa, 0xce, 0xde, 0xad, 0xbe, 0xef,
+                0xab, 0xad, 0xda, 0xd2
+            };
+            byte t[AES_BLOCK_SIZE];
+
+            memset(t, 0, AES_BLOCK_SIZE);
+
+            AesGcmSetKey(&aes, key, size);
+            AesGcmEncrypt(&aes, output, input, length, iv, AES_BLOCK_SIZE, t,
+                    AES_BLOCK_SIZE, a, sizeof(a));
+        }
+#endif
         else {
             printf("Incompatible mode\n");
             return -1004;
         }
 	}
+#endif
+#ifndef NO_DES3
 	if (strcmp(alg, "3des") == 0) {
 		ret = Des3_SetKey(&des3, key, iv, DES_ENCRYPTION);
 	    if (ret != 0)
@@ -659,7 +809,7 @@ int Encrypt(char* alg, char* mode, byte* key, int size, char* in, char* out,
 	    if (ret != 0)
 	        return -1012;
 	}
-
+#endif
 #ifdef HAVE_CAMELLIA
 	if (strcmp(alg, "camellia") == 0) {
 	    ret = CamelliaSetKey(&camellia, key, block, iv);
@@ -765,6 +915,7 @@ int Decrypt(char* alg, char* mode, byte* key, int size, char* in, char* out,
         input[i] = input[i + (block + SALT_SIZE)];
     }
     /* sets key decrypts the message to ouput from input length */
+#ifndef NO_AES
     if (strcmp(alg, "aes") == 0) {
         if (strcmp(mode, "cbc") == 0) {
 		    ret = AesSetKey(&aes, key, AES_BLOCK_SIZE, iv, AES_DECRYPTION);
@@ -780,7 +931,28 @@ int Decrypt(char* alg, char* mode, byte* key, int size, char* in, char* out,
             AesCtrEncrypt(&aes, output, input, length);
         }
 #endif
-	}
+#ifdef HAVE_AESGCM
+        else if (strcmp(mode, "gcm") == 0) {
+            const byte a[] =
+            {
+                0xfe, 0xed, 0xfa, 0xce, 0xde, 0xad, 0xbe, 0xef,
+                0xfe, 0xed, 0xfa, 0xce, 0xde, 0xad, 0xbe, 0xef,
+                0xab, 0xad, 0xda, 0xd2
+            };
+            byte t[AES_BLOCK_SIZE];
+
+            memset(t, 0, AES_BLOCK_SIZE);
+
+            AesGcmSetKey(&aes, key, size);
+            ret = AesGcmDecrypt(&aes, output, input, length, iv, AES_BLOCK_SIZE,
+                    t, AES_BLOCK_SIZE, a, sizeof(a));
+            if (ret != 0)
+                return -1006;
+        }
+#endif
+}
+#endif
+#ifndef NO_DES3
 	if (strcmp(alg, "3des") == 0) {
 		ret = Des3_SetKey(&des3, key, iv, DES_DECRYPTION);
 	    if (ret != 0)
@@ -789,7 +961,7 @@ int Decrypt(char* alg, char* mode, byte* key, int size, char* in, char* out,
 	    if (ret != 0)
 	        return -1005;
 	}
-
+#endif
 #ifdef HAVE_CAMELLIA
 	if (strcmp(alg, "camellia") == 0) {
 	    ret = CamelliaSetKey(&camellia, key, block, iv);
@@ -798,7 +970,7 @@ int Decrypt(char* alg, char* mode, byte* key, int size, char* in, char* out,
 	    /* encrypts the message to the ouput based on input length + padding */
 	    CamelliaCbcDecrypt(&camellia, output, input, length);
 	}
-#endif /* HAVE_CAMELLIA */
+#endif
 
     if (salt[0] != 0) {
         /* reduces length based on number of padded elements  */
@@ -819,15 +991,20 @@ int Decrypt(char* alg, char* mode, byte* key, int size, char* in, char* out,
     return 0;
 }
 
-int Benchmark(int timer)
+int Benchmark(int timer, int* option)
 {
+#ifndef NO_AES
     Aes aes;
+#endif
+#ifndef NO_DES3
 	Des3 des3;
+#endif
 
     RNG rng;
 
     int ret = 0;
     double start;
+    int i = 0;
     ALIGN16 byte* plain;
     ALIGN16 byte* cipher;
     ALIGN16 byte* key;
@@ -837,258 +1014,316 @@ int Benchmark(int timer)
     InitRng(&rng);
 
     signal(SIGALRM, Stopf);
-
-    plain = malloc(AES_BLOCK_SIZE);
-    cipher = malloc(AES_BLOCK_SIZE);
-    key = malloc(AES_BLOCK_SIZE);
-    iv = malloc(AES_BLOCK_SIZE);
-
-    RNG_GenerateBlock(&rng, plain, AES_BLOCK_SIZE);
-    RNG_GenerateBlock(&rng, cipher, AES_BLOCK_SIZE);
-    RNG_GenerateBlock(&rng, key, AES_BLOCK_SIZE);
-    RNG_GenerateBlock(&rng, iv, AES_BLOCK_SIZE);
-
-    start = CurrTime();
-    alarm(timer);
-                   
-    AesSetKey(&aes, key, AES_BLOCK_SIZE, iv, AES_ENCRYPTION);
-    while (loop) {
-        AesCbcEncrypt(&aes, cipher, plain, AES_BLOCK_SIZE);
-        blocks++;
-    }
-    printf("AES ");
-    Stats(start, AES_BLOCK_SIZE);
-    memset(plain, 0, AES_BLOCK_SIZE);
-    memset(cipher, 0, AES_BLOCK_SIZE);
-    memset(key, 0, AES_BLOCK_SIZE);
-    memset(iv, 0, AES_BLOCK_SIZE);
-    free(plain);
-    free(cipher);
-    free(key);
-    free(iv);
-    blocks = 0;
-    loop = 1;
-   
-    plain = malloc(DES3_BLOCK_SIZE);
-    cipher = malloc(DES3_BLOCK_SIZE);
-    key = malloc(DES3_BLOCK_SIZE);
-    iv = malloc(DES3_BLOCK_SIZE);
+#ifndef NO_AES
+    if (option[i] == 1) {
+        plain = malloc(AES_BLOCK_SIZE);
+        cipher = malloc(AES_BLOCK_SIZE);
+        key = malloc(AES_BLOCK_SIZE);
+        iv = malloc(AES_BLOCK_SIZE);
     
-    RNG_GenerateBlock(&rng, plain, DES3_BLOCK_SIZE);
-    RNG_GenerateBlock(&rng, cipher, DES3_BLOCK_SIZE);
-    RNG_GenerateBlock(&rng, key, DES3_BLOCK_SIZE);
-    RNG_GenerateBlock(&rng, iv, DES3_BLOCK_SIZE);
- 
-    start = CurrTime();
-    alarm(timer);
-
-       Des3_SetKey(&des3, key, iv, DES_ENCRYPTION);
-    while (loop) {
-        Des3_CbcEncrypt(&des3, cipher, plain, DES3_BLOCK_SIZE);
-        blocks++;
+        RNG_GenerateBlock(&rng, plain, AES_BLOCK_SIZE);
+        RNG_GenerateBlock(&rng, cipher, AES_BLOCK_SIZE);
+        RNG_GenerateBlock(&rng, key, AES_BLOCK_SIZE);
+        RNG_GenerateBlock(&rng, iv, AES_BLOCK_SIZE);
+        start = CurrTime();
+        alarm(timer);
+                       
+        AesSetKey(&aes, key, AES_BLOCK_SIZE, iv, AES_ENCRYPTION);
+        while (loop) {
+            AesCbcEncrypt(&aes, cipher, plain, AES_BLOCK_SIZE);
+            blocks++;
+        }
+        printf("AES-CBC ");
+        Stats(start, AES_BLOCK_SIZE);
+        memset(plain, 0, AES_BLOCK_SIZE);
+        memset(cipher, 0, AES_BLOCK_SIZE);
+        memset(key, 0, AES_BLOCK_SIZE);
+        memset(iv, 0, AES_BLOCK_SIZE);
+        free(plain);
+        free(cipher);
+        free(key);
+        free(iv);
+        blocks = 0;
+        loop = 1;
     }
-    printf("3DES ");
-    Stats(start, DES3_BLOCK_SIZE);
-    memset(plain, 0, DES3_BLOCK_SIZE);
-    memset(cipher, 0, DES3_BLOCK_SIZE);
-    memset(key, 0, DES3_BLOCK_SIZE);
-    memset(iv, 0, DES3_BLOCK_SIZE);
-    free(plain);
-    free(cipher);
-    free(key);
-    free(iv);
-    blocks = 0;
-    loop = 1;
+    i++;
+#endif
+#ifdef CYASSL_AES_COUNTER
+    if (option[i] == 1) {
+        plain = malloc(AES_BLOCK_SIZE);
+        cipher = malloc(AES_BLOCK_SIZE);
+        key = malloc(AES_BLOCK_SIZE);
+        iv = malloc(AES_BLOCK_SIZE);
     
+        RNG_GenerateBlock(&rng, plain, AES_BLOCK_SIZE);
+        RNG_GenerateBlock(&rng, cipher, AES_BLOCK_SIZE);
+        RNG_GenerateBlock(&rng, key, AES_BLOCK_SIZE);
+        RNG_GenerateBlock(&rng, iv, AES_BLOCK_SIZE);
+        start = CurrTime();
+        alarm(timer);
+                       
+        AesSetKeyDirect(&aes, key, AES_BLOCK_SIZE, iv, AES_ENCRYPTION);
+        while (loop) {
+            AesCtrEncrypt(&aes, cipher, plain, AES_BLOCK_SIZE);
+            blocks++;
+        }
+        printf("AES-CTR ");
+        Stats(start, AES_BLOCK_SIZE);
+        memset(plain, 0, AES_BLOCK_SIZE);
+        memset(cipher, 0, AES_BLOCK_SIZE);
+        memset(key, 0, AES_BLOCK_SIZE);
+        memset(iv, 0, AES_BLOCK_SIZE);
+        free(plain);
+        free(cipher);
+        free(key);
+        free(iv);
+        blocks = 0;
+        loop = 1;
+    }
+    i++;
+#endif
+#ifndef NO_DES3
+    if (option[i] == 1) {   
+        plain = malloc(DES3_BLOCK_SIZE);
+        cipher = malloc(DES3_BLOCK_SIZE);
+        key = malloc(DES3_BLOCK_SIZE);
+        iv = malloc(DES3_BLOCK_SIZE);
+        
+        RNG_GenerateBlock(&rng, plain, DES3_BLOCK_SIZE);
+        RNG_GenerateBlock(&rng, cipher, DES3_BLOCK_SIZE);
+        RNG_GenerateBlock(&rng, key, DES3_BLOCK_SIZE);
+        RNG_GenerateBlock(&rng, iv, DES3_BLOCK_SIZE);
+     
+        start = CurrTime();
+        alarm(timer);
+    
+           Des3_SetKey(&des3, key, iv, DES_ENCRYPTION);
+        while (loop) {
+            Des3_CbcEncrypt(&des3, cipher, plain, DES3_BLOCK_SIZE);
+            blocks++;
+        }
+        printf("3DES ");
+        Stats(start, DES3_BLOCK_SIZE);
+        memset(plain, 0, DES3_BLOCK_SIZE);
+        memset(cipher, 0, DES3_BLOCK_SIZE);
+        memset(key, 0, DES3_BLOCK_SIZE);
+        memset(iv, 0, DES3_BLOCK_SIZE);
+        free(plain);
+        free(cipher);
+        free(key);
+        free(iv);
+        blocks = 0;
+        loop = 1;
+    }
+    i++;
+#endif
 #ifdef HAVE_CAMELLIA
-	Camellia camellia;
-
-    plain = malloc(CAMELLIA_BLOCK_SIZE);
-    cipher = malloc(CAMELLIA_BLOCK_SIZE);
-    key = malloc(CAMELLIA_BLOCK_SIZE);
-    iv = malloc(CAMELLIA_BLOCK_SIZE);
-  
-    RNG_GenerateBlock(&rng, plain, CAMELLIA_BLOCK_SIZE);
-    RNG_GenerateBlock(&rng, cipher, CAMELLIA_BLOCK_SIZE);
-    RNG_GenerateBlock(&rng, key, CAMELLIA_BLOCK_SIZE);
-    RNG_GenerateBlock(&rng, iv, CAMELLIA_BLOCK_SIZE);
-  
-    start = CurrTime();
-    alarm(timer);
-
-    CamelliaSetKey(&camellia, key, CAMELLIA_BLOCK_SIZE, iv);
-    while (loop) {
-        CamelliaCbcEncrypt(&camellia, cipher, plain, CAMELLIA_BLOCK_SIZE);
-        blocks++;
+    if (option[i] == 1) {
+    	Camellia camellia;
+    
+        plain = malloc(CAMELLIA_BLOCK_SIZE);
+        cipher = malloc(CAMELLIA_BLOCK_SIZE);
+        key = malloc(CAMELLIA_BLOCK_SIZE);
+        iv = malloc(CAMELLIA_BLOCK_SIZE);
+      
+        RNG_GenerateBlock(&rng, plain, CAMELLIA_BLOCK_SIZE);
+        RNG_GenerateBlock(&rng, cipher, CAMELLIA_BLOCK_SIZE);
+        RNG_GenerateBlock(&rng, key, CAMELLIA_BLOCK_SIZE);
+        RNG_GenerateBlock(&rng, iv, CAMELLIA_BLOCK_SIZE);
+      
+        start = CurrTime();
+        alarm(timer);
+    
+        CamelliaSetKey(&camellia, key, CAMELLIA_BLOCK_SIZE, iv);
+        while (loop) {
+            CamelliaCbcEncrypt(&camellia, cipher, plain, CAMELLIA_BLOCK_SIZE);
+            blocks++;
+        }
+        printf("Camellia ");
+        Stats(start, CAMELLIA_BLOCK_SIZE);
+        memset(plain, 0, CAMELLIA_BLOCK_SIZE);
+        memset(cipher, 0, CAMELLIA_BLOCK_SIZE);
+        memset(key, 0, CAMELLIA_BLOCK_SIZE);
+        memset(iv, 0, CAMELLIA_BLOCK_SIZE);
+        free(plain);
+        free(cipher);
+        free(key);
+        free(iv);
+        blocks = 0;
+        loop = 1;
     }
-    printf("Camellia ");
-    Stats(start, CAMELLIA_BLOCK_SIZE);
-    memset(plain, 0, CAMELLIA_BLOCK_SIZE);
-    memset(cipher, 0, CAMELLIA_BLOCK_SIZE);
-    memset(key, 0, CAMELLIA_BLOCK_SIZE);
-    memset(iv, 0, CAMELLIA_BLOCK_SIZE);
-    free(plain);
-    free(cipher);
-    free(key);
-    free(iv);
-    blocks = 0;
-    loop = 1;
+    i++;
 #endif
 
 #ifndef NO_MD5
-    Md5 md5;
-
-    digest = malloc(MD5_DIGEST_SIZE);
-    plain = malloc(MEGABYTE);
-    RNG_GenerateBlock(&rng, plain, MEGABYTE);
-
-    InitMd5(&md5);
-    start = CurrTime();
-    alarm(timer);
-
-    while (loop) {
-        Md5Update(&md5, plain, MEGABYTE);
-        blocks++;
+    if (option[i] == 1) {
+        Md5 md5;
+    
+        digest = malloc(MD5_DIGEST_SIZE);
+        plain = malloc(MEGABYTE);
+        RNG_GenerateBlock(&rng, plain, MEGABYTE);
+    
+        InitMd5(&md5);
+        start = CurrTime();
+        alarm(timer);
+    
+        while (loop) {
+            Md5Update(&md5, plain, MEGABYTE);
+            blocks++;
+        }
+        Md5Final(&md5, digest);
+        printf("MD5 ");
+        Stats(start, MEGABYTE);
+        memset(plain, 0, MEGABYTE);
+        memset(digest, 0, MD5_DIGEST_SIZE);
+        free(plain);
+        free(digest);
+        blocks = 0;
+        loop = 1;
     }
-    Md5Final(&md5, digest);
-    printf("MD5 ");
-    Stats(start, MEGABYTE);
-    memset(plain, 0, MEGABYTE);
-    memset(digest, 0, MD5_DIGEST_SIZE);
-    free(plain);
-    free(digest);
-    blocks = 0;
-    loop = 1;
+    i++;
 #endif
 
 #ifndef NO_SHA
-    Sha sha;
-
-    digest = malloc(SHA_DIGEST_SIZE);
-    plain = malloc(MEGABYTE);
-    RNG_GenerateBlock(&rng, plain, MEGABYTE);
-
-    InitSha(&sha);
-    start = CurrTime();
-    alarm(timer);
-
-    while (loop) {
-        ShaUpdate(&sha, plain, MEGABYTE);
-        blocks++;
+    if (option[i] == 1) {
+        Sha sha;
+    
+        digest = malloc(SHA_DIGEST_SIZE);
+        plain = malloc(MEGABYTE);
+        RNG_GenerateBlock(&rng, plain, MEGABYTE);
+    
+        InitSha(&sha);
+        start = CurrTime();
+        alarm(timer);
+    
+        while (loop) {
+            ShaUpdate(&sha, plain, MEGABYTE);
+            blocks++;
+        }
+        ShaFinal(&sha, digest);
+        printf("Sha ");
+        Stats(start, MEGABYTE);
+        memset(plain, 0, MEGABYTE);
+        memset(digest, 0, SHA_DIGEST_SIZE);
+        free(plain);
+        free(digest);
+        blocks = 0;
+        loop = 1;
     }
-    ShaFinal(&sha, digest);
-    printf("Sha ");
-    Stats(start, MEGABYTE);
-    memset(plain, 0, MEGABYTE);
-    memset(digest, 0, SHA_DIGEST_SIZE);
-    free(plain);
-    free(digest);
-    blocks = 0;
-    loop = 1;
+    i++;
 #endif
 
 #ifndef NO_SHA256
-    Sha256 sha256;
-
-    digest = malloc(SHA256_DIGEST_SIZE);
-    plain = malloc(MEGABYTE);
-    RNG_GenerateBlock(&rng, plain, MEGABYTE);
-
-    InitSha256(&sha256);
-    start = CurrTime();
-    alarm(timer);
-
-    while (loop) {
-        Sha256Update(&sha256, plain, MEGABYTE);
-        blocks++;
+    if (option[i] == 1) {
+        Sha256 sha256;
+    
+        digest = malloc(SHA256_DIGEST_SIZE);
+        plain = malloc(MEGABYTE);
+        RNG_GenerateBlock(&rng, plain, MEGABYTE);
+    
+        InitSha256(&sha256);
+        start = CurrTime();
+        alarm(timer);
+    
+        while (loop) {
+            Sha256Update(&sha256, plain, MEGABYTE);
+            blocks++;
+        }
+        Sha256Final(&sha256, digest);
+        printf("Sha256 ");
+        Stats(start, MEGABYTE);
+        memset(plain, 0, MEGABYTE);
+        memset(digest, 0, SHA256_DIGEST_SIZE);
+        free(plain);
+        free(digest);
+        blocks = 0;
+        loop = 1;
     }
-    Sha256Final(&sha256, digest);
-    printf("Sha256 ");
-    Stats(start, MEGABYTE);
-    memset(plain, 0, MEGABYTE);
-    memset(digest, 0, SHA256_DIGEST_SIZE);
-    free(plain);
-    free(digest);
-    blocks = 0;
-    loop = 1;
-
+    i++;
 #endif
 
 #ifdef CYASSL_SHA384
-    Sha384 sha384;
-
-    digest = malloc(SHA384_DIGEST_SIZE);
-    plain = malloc(MEGABYTE);
-    RNG_GenerateBlock(&rng, plain, MEGABYTE);
-
-    InitSha384(&sha384);
-    start = CurrTime();
-    alarm(timer);
-
-    while (loop) {
-        Sha384Update(&sha384, plain, MEGABYTE);
-        blocks++;
+    if (option[i] == 1) {
+        Sha384 sha384;
+    
+        digest = malloc(SHA384_DIGEST_SIZE);
+        plain = malloc(MEGABYTE);
+        RNG_GenerateBlock(&rng, plain, MEGABYTE);
+    
+        InitSha384(&sha384);
+        start = CurrTime();
+        alarm(timer);
+    
+        while (loop) {
+            Sha384Update(&sha384, plain, MEGABYTE);
+            blocks++;
+        }
+        Sha384Final(&sha384, digest);
+        printf("Sha384 ");
+        Stats(start, MEGABYTE);
+        memset(plain, 0, MEGABYTE);
+        memset(digest, 0, SHA384_DIGEST_SIZE);
+        free(plain);
+        free(digest);
+        blocks = 0;
+        loop = 1;
     }
-    Sha384Final(&sha384, digest);
-    printf("Sha384 ");
-    Stats(start, MEGABYTE);
-    memset(plain, 0, MEGABYTE);
-    memset(digest, 0, SHA384_DIGEST_SIZE);
-    free(plain);
-    free(digest);
-    blocks = 0;
-    loop = 1;
-
+    i++;
 #endif
 
 #ifdef CYASSL_SHA512
-    Sha512 sha512;
-
-    digest = malloc(SHA512_DIGEST_SIZE);
-    plain = malloc(MEGABYTE);
-    RNG_GenerateBlock(&rng, plain, MEGABYTE);
-
-    InitSha512(&sha512);
-    start = CurrTime();
-    alarm(timer);
-
-    while (loop) {
-        Sha512Update(&sha512, plain, MEGABYTE);
-        blocks++;
+    if (option[i] == 1) {
+        Sha512 sha512;
+    
+        digest = malloc(SHA512_DIGEST_SIZE);
+        plain = malloc(MEGABYTE);
+        RNG_GenerateBlock(&rng, plain, MEGABYTE);
+    
+        InitSha512(&sha512);
+        start = CurrTime();
+        alarm(timer);
+    
+        while (loop) {
+            Sha512Update(&sha512, plain, MEGABYTE);
+            blocks++;
+        }
+        Sha512Final(&sha512, digest);
+        printf("Sha512 ");
+        Stats(start, MEGABYTE);
+        memset(plain, 0, MEGABYTE);
+        memset(digest, 0, SHA512_DIGEST_SIZE);
+        free(plain);
+        free(digest);
+        blocks = 0;
+        loop = 1;
     }
-    Sha512Final(&sha512, digest);
-    printf("Sha512 ");
-    Stats(start, MEGABYTE);
-    memset(plain, 0, MEGABYTE);
-    memset(digest, 0, SHA512_DIGEST_SIZE);
-    free(plain);
-    free(digest);
-    blocks = 0;
-    loop = 1;
+    i++;
 #endif
 
 #ifdef HAVE_BLAKE2
-    Blake2b  b2b;
-
-    digest = malloc(BLAKE_DIGEST_SIZE);
-    plain = malloc(MEGABYTE);
-    RNG_GenerateBlock(&rng, plain, MEGABYTE);
-
-    InitBlake2b(&b2b, BLAKE_DIGEST_SIZE);
-    start = CurrTime();
-    alarm(timer);
-
-    while (loop) {
-        Blake2bUpdate(&b2b, plain, MEGABYTE);
-        blocks++;
+    if (option[i] == 1) {
+        Blake2b  b2b;
+    
+        digest = malloc(BLAKE_DIGEST_SIZE);
+        plain = malloc(MEGABYTE);
+        RNG_GenerateBlock(&rng, plain, MEGABYTE);
+    
+        InitBlake2b(&b2b, BLAKE_DIGEST_SIZE);
+        start = CurrTime();
+        alarm(timer);
+    
+        while (loop) {
+            Blake2bUpdate(&b2b, plain, MEGABYTE);
+            blocks++;
+        }
+        Blake2bFinal(&b2b, digest, BLAKE_DIGEST_SIZE);
+        printf("Blake2b ");
+        Stats(start, MEGABYTE);
+        memset(plain, 0, MEGABYTE);
+        memset(digest, 0, BLAKE_DIGEST_SIZE);
+        free(plain);
+        free(digest);
     }
-    Blake2bFinal(&b2b, digest, BLAKE_DIGEST_SIZE);
-    printf("Blake2b ");
-    Stats(start, MEGABYTE);
-    memset(plain, 0, MEGABYTE);
-    memset(digest, 0, BLAKE_DIGEST_SIZE);
-    free(plain);
-    free(digest);
 #endif
     return ret;
 }
@@ -1132,26 +1367,26 @@ int Hash(char* in, char* out, char* alg, int size)
         }
         fclose(inFile);
     }
-    
+#ifndef NO_MD5    
     if (strcmp(alg, "-md5") == 0) 
         ret = Md5Hash(input, length, output);
-                
+#endif
+#ifndef NO_SHA  
     else if (strcmp(alg, "-sha") == 0)
         ret = ShaHash(input, length, output);
-                
+#endif
+#ifndef NO_SHA256  
     else if (strcmp(alg, "-sha256") == 0) 
         ret = Sha256Hash(input, length, output);
-                
+#endif
 #ifdef CYASSL_SHA384
     else if (strcmp(alg, "-sha384") == 0) 
         ret = Sha384Hash(input, length, output);
 #endif
-
 #ifdef CYASSL_SHA512
     else if (strcmp(alg, "-sha512") == 0) 
         ret = Sha512Hash(input, length, output);
 #endif
-
 #ifdef HAVE_BLAKE2
     else if (strcmp(alg, "-blake2b") == 0) { 
         ret = InitBlake2b(&hash, size);

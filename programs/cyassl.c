@@ -49,16 +49,16 @@ int main(int argc, char** argv)
     }
 
     if (num == 0) { 
-        Enc(argc, argv);
+        ret = Enc(argc, argv);
     }
     else if (num == 1) {
-        Dec(argc, argv);
+        ret = Dec(argc, argv);
     }
     else if (num == 2) {
-        Has(argc, argv);
+        ret = Has(argc, argv);
     }
     else if (num == 3) {
-        Bench(argc, argv);
+        ret = Bench(argc, argv);
     }
     else {
         printf("Invalid selection. For a list of commands type -help\n");

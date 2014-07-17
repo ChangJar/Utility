@@ -75,7 +75,7 @@ int Encrypt(char* alg, char* mode, byte* key, int size, char* in,
 	char* out, byte* iv, int block);
 int Decrypt(char* alg, char* mode, byte* key, int size, char* in, 
 	char* out, byte* iv, int block);
-int Benchmark(int timer);
+int Benchmark(int timer, int* option);
 int Hash(char* in, char* out, char* alg, int size);
 #endif
 
