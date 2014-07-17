@@ -66,9 +66,7 @@ int Enc(int argc, char** argv)
 
     name = argv[2];
     block = GetAlgorithm(name, &alg, &mode, &size);
-if (strcmp(mode, "gcm") == 0) {
-    printf("WARNING: gcm not currently performing properly.\n");
-}    
+    
     if (block != -1) {
         key = malloc(size);
         iv = malloc(block);
@@ -307,9 +305,6 @@ void Help(char* name)
 #ifdef CYASSL_AES_COUNTER
         printf("-aes-ctr-128\t\t-aes-ctr-192\t\t-aes-ctr-256\n");
 #endif
-#ifdef HAVE_AESGCM
-        printf("-aes-gcm-128\t\t-aes-gcm-192\t\t-aes-gcm-256\n");
-#endif
 #ifndef NO_DES3
         printf("-3des-cbc-56\t\t-3des-cbc-112\t\t-3des-cbc-168\n");
 #endif
@@ -540,9 +535,6 @@ int GetAlgorithm(char* name, char** alg, char** mode, int* size)
     char* acceptMode[] = {"cbc"
 #ifdef CYASSL_AES_COUNTER
         , "ctr"
-#endif
-#ifdef HAVE_AESGCM
-        , "gcm"
 #endif
     };
 
@@ -777,27 +769,6 @@ int Encrypt(char* alg, char* mode, byte* key, int size, char* in, char* out,
             AesCtrEncrypt(&aes, output, input, length);
         }
 #endif
-#ifdef HAVE_AESGCM
-        else if (strcmp(mode, "gcm") == 0) {
-            const byte a[] =
-            {
-                0xfe, 0xed, 0xfa, 0xce, 0xde, 0xad, 0xbe, 0xef,
-                0xfe, 0xed, 0xfa, 0xce, 0xde, 0xad, 0xbe, 0xef,
-                0xab, 0xad, 0xda, 0xd2
-            };
-            byte t[AES_BLOCK_SIZE];
-
-            memset(t, 0, AES_BLOCK_SIZE);
-
-            AesGcmSetKey(&aes, key, size);
-            AesGcmEncrypt(&aes, output, input, length, iv, AES_BLOCK_SIZE, t,
-                    AES_BLOCK_SIZE, a, sizeof(a));
-        }
-#endif
-        else {
-            printf("Incompatible mode\n");
-            return -1004;
-        }
 	}
 #endif
 #ifndef NO_DES3
@@ -929,25 +900,6 @@ int Decrypt(char* alg, char* mode, byte* key, int size, char* in, char* out,
         else if (strcmp(mode, "ctr") == 0) {
             AesSetKeyDirect(&aes, key, AES_BLOCK_SIZE, iv, AES_ENCRYPTION);
             AesCtrEncrypt(&aes, output, input, length);
-        }
-#endif
-#ifdef HAVE_AESGCM
-        else if (strcmp(mode, "gcm") == 0) {
-            const byte a[] =
-            {
-                0xfe, 0xed, 0xfa, 0xce, 0xde, 0xad, 0xbe, 0xef,
-                0xfe, 0xed, 0xfa, 0xce, 0xde, 0xad, 0xbe, 0xef,
-                0xab, 0xad, 0xda, 0xd2
-            };
-            byte t[AES_BLOCK_SIZE];
-
-            memset(t, 0, AES_BLOCK_SIZE);
-
-            AesGcmSetKey(&aes, key, size);
-            ret = AesGcmDecrypt(&aes, output, input, length, iv, AES_BLOCK_SIZE,
-                    t, AES_BLOCK_SIZE, a, sizeof(a));
-            if (ret != 0)
-                return -1006;
         }
 #endif
 }
