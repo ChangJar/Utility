@@ -245,8 +245,9 @@ void Help(char* name)
 #endif
         };
 
-        printf("\nUSAGE: cyassl hash <-algorithm> <-i filename> [-o filename]");
-        printf(" [-s size](*size use for Blake2b only between 1-64*)\n");
+        printf("\nUSAGE: cyassl hash <-algorithm> <-i filename> [-o filename]"
+                " [-s size]\n");
+        printf("\n( NOTE: *size use for Blake2b only between 1-64)\n");
         printf("\nAcceptable Algorithms\n");
         for (i = 0; i < sizeof(algs)/sizeof(algs[0]); i++) {
             printf("%s\n", algs[i]);
@@ -1295,6 +1296,8 @@ int Hash(char* in, char* out, char* alg, int size)
     int ret;
     int i;
 
+    char* dispName;
+
     output = malloc(size);
     memset(output, 0, size);
     inFile = fopen(in, "r");
@@ -1320,30 +1323,41 @@ int Hash(char* in, char* out, char* alg, int size)
         fclose(inFile);
     }
 #ifndef NO_MD5    
-    if (strcmp(alg, "-md5") == 0) 
+    if (strcmp(alg, "-md5") == 0) {
         ret = Md5Hash(input, length, output);
+        dispName = "MD5";
+    }
 #endif
 #ifndef NO_SHA  
-    else if (strcmp(alg, "-sha") == 0)
+    else if (strcmp(alg, "-sha") == 0) {
         ret = ShaHash(input, length, output);
+        dispName = "SHA";
+    }
 #endif
 #ifndef NO_SHA256  
-    else if (strcmp(alg, "-sha256") == 0) 
+    else if (strcmp(alg, "-sha256") == 0) {
         ret = Sha256Hash(input, length, output);
+        dispName = "SHA256";
+    }
 #endif
 #ifdef CYASSL_SHA384
-    else if (strcmp(alg, "-sha384") == 0) 
+    else if (strcmp(alg, "-sha384") == 0) {
         ret = Sha384Hash(input, length, output);
+        dispName = "SHA384";
+    }
 #endif
 #ifdef CYASSL_SHA512
-    else if (strcmp(alg, "-sha512") == 0) 
+    else if (strcmp(alg, "-sha512") == 0) {
         ret = Sha512Hash(input, length, output);
+        dispName = "SHA512";
+    }
 #endif
 #ifdef HAVE_BLAKE2
     else if (strcmp(alg, "-blake2b") == 0) { 
         ret = InitBlake2b(&hash, size);
         ret = Blake2bUpdate(&hash, input, length);
         ret = Blake2bFinal(&hash, output, size);
+        dispName = "BLAKE2b";
     }
 #endif
     if (ret == 0) {
@@ -1357,7 +1371,7 @@ int Hash(char* in, char* out, char* alg, int size)
             }
         }
         else {
-            printf("\"%s\" Hash:\t", in);
+            printf("%s(%s):\t", dispName, in);
             for (i = 0; i < size; i++) {
                 printf("%02x", output[i]);
             }
