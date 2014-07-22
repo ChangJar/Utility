@@ -674,11 +674,11 @@ void Stats(double start, int blockSize)
     int64_t compBlocks = blocks;
     double total = CurrTime() - start, mbs;
 
-    printf("took %6.3f seconds, blocks = %llu\n", total,
+    printf("took%6.3f seconds, blocks = %llu\n", total,
            (unsigned long long)compBlocks);
 
     mbs = compBlocks * blockSize / MEGABYTE / total;
-    printf("MB/s = %8.1f\n", mbs);
+    printf("Average MB/s = %8.1f\n", mbs);
 }
 
 int Encrypt(char* alg, char* mode, byte* key, int size, char* in, char* out, 

@@ -90,7 +90,7 @@ function hashing() {
         let SIZET+=10
     done
 }
-
+make
 crypto $AES\128
 crypto $AES\192
 crypto $AES\256
