@@ -67,7 +67,7 @@ int Enc(int argc, char** argv)
     name = argv[2];
     block = GetAlgorithm(name, &alg, &mode, &size);
     
-    if (block != -1) {
+    if (block != FATAL_ERROR) {
         key = malloc(size);
         iv = malloc(block);
         memset(iv, 0, block);
@@ -104,12 +104,12 @@ int Enc(int argc, char** argv)
         }
         if (inCheck == 0) {
             printf("Must have input as either a file or standard I/O\n");
-            return -1;
+            return FATAL_ERROR;
         }
         if (keyCheck == 0) {
             ret = NoEcho((char*)key, size);
         }
-        if (outCheck == 0) {
+        if (outCheck == 0 && ret == 0) {
             out = outName;
             for (i = 0; i < strlen(in); i++) {
                 if ((in[i] == '.') || (mark == 1)) {
@@ -123,6 +123,8 @@ int Enc(int argc, char** argv)
         free(key);
         free(iv);
     }
+    else
+        ret = FATAL_ERROR;
     return ret;
 }
 
@@ -160,7 +162,7 @@ int Dec(int argc, char** argv)
 
     name = argv[2];
     block = GetAlgorithm(name, &alg, &mode, &size);
-    if (block != -1) {
+    if (block != FATAL_ERROR) {
         key = malloc(size);
         iv = malloc(block);
         memset(iv, 0, block);
@@ -197,12 +199,12 @@ int Dec(int argc, char** argv)
         }
         if (inCheck == 0) {
             printf("Must have input as a file\n");
-            return -1;
+            return FATAL_ERROR;
         }
         if (keyCheck == 0) {
             ret = NoEcho((char*)key, size);
         }
-        if (outCheck == 0) {
+        if (outCheck == 0 && ret == 0) {
             out = outName;
             for (i = 0; i < strlen(in); i++) {
                 if ((in[i] == '.') || (mark == 1)) {
@@ -216,6 +218,8 @@ int Dec(int argc, char** argv)
         free(key);
         free(iv);
     }
+    else 
+        ret = FATAL_ERROR;
     return ret;
 }
 
@@ -321,8 +325,8 @@ int Has(int argc, char** argv)
 {
 	int ret = 0;
 	int i = 0;
-    char*   in = 0;
-    char*   out = 0;
+    char*   in;
+    char*   out;
 	char* algs[] = {
 #ifndef NO_MD5
         "-md5"
@@ -361,7 +365,7 @@ int Has(int argc, char** argv)
             Help("hash");
             return 0;
         }
-    } 
+    }
     for (i = 0; i < sizeof(algs)/sizeof(algs[0]); i++) {
 		if (strcmp(argv[2], algs[i]) == 0) {
 			alg = argv[2];
@@ -370,12 +374,12 @@ int Has(int argc, char** argv)
 	}
 	if (algCheck == 0) {
 		printf("Invalid algorithm\n");
-		return -1;
+		return FATAL_ERROR;
 	}
 
 	for (i = 3; i < argc; i++) {
         if (strcmp(argv[i], "-i") == 0 && argv[i+1] != NULL) {
-            in = malloc(sizeof(argv[i+1]));
+            in = malloc(strlen(argv[i+1]));
             strcpy(in,  &argv[i+1][0]);
             inCheck = 1;
             i++;
@@ -402,7 +406,7 @@ int Has(int argc, char** argv)
     }
     if (inCheck == 0) {
         printf("Must have input as either a file or standard I/O\n");
-        return -1;
+        return FATAL_ERROR;
     }
     
 #ifndef NO_MD5
@@ -482,7 +486,7 @@ int Bench(int argc, char** argv)
     for (i = 2; i < argc; i++) {
         if (strcmp(argv[i], "-help") == 0) {
             Help("bench");
-            return -1;
+            return 0;
         }
         for (j = 0; j < sizeof(algs)/sizeof(algs[0]); j++) {
             if (strcmp(argv[i], algs[j]) == 0) {
@@ -551,8 +555,8 @@ int GetAlgorithm(char* name, char** alg, char** mode, int* size)
     }
 
     if (nameCheck == 0 || modeCheck == 0) {
-        printf("Invalid entry. Please enter -help for help\n");
-        return -1;
+        printf("Invalid entry\n");
+        return FATAL_ERROR;
     }
 
 	sz = strtok(NULL, "-");
@@ -563,7 +567,7 @@ int GetAlgorithm(char* name, char** alg, char** mode, int* size)
         if (*size != 128 && *size != 192 && *size != 256) {
             /* if the entered size does not match acceptable size */
             printf("Invalid AES key size\n");
-            ret = -1;
+            ret = FATAL_ERROR;
         }
 	}
 #endif
@@ -573,7 +577,7 @@ int GetAlgorithm(char* name, char** alg, char** mode, int* size)
         if (*size != 56 && *size != 112 && *size != 168) {
             /* if the entered size does not match acceptable size */
             printf("Invalid 3DES key size\n");
-            ret = -1;
+            ret = FATAL_ERROR;
         }
 	}
 #endif
@@ -583,14 +587,14 @@ int GetAlgorithm(char* name, char** alg, char** mode, int* size)
         if (*size != 128 && *size != 192 && *size != 256) {
             /* if the entered size does not match acceptable size */
             printf("Invalid Camellia key size\n");
-            ret = -1;
+            ret = FATAL_ERROR;
         }
 	}
 #endif
 
 	else {
 		printf("Invalid algorithm: %s\n", *alg);
-		ret = -1;
+		ret = FATAL_ERROR;
 	}
 	return ret;
 }
@@ -604,7 +608,7 @@ int GenerateKey(RNG* rng, byte* key, int size, byte* salt, int pad)
 
     ret = RNG_GenerateBlock(rng, salt, SALT_SIZE-1);
     if (ret != 0)
-        return -1020;
+        return ret;
 
     if (pad == 0)        /* sets first value of salt to check if the */
         salt[0] = 0;            /* message is padded */
@@ -613,7 +617,7 @@ int GenerateKey(RNG* rng, byte* key, int size, byte* salt, int pad)
     ret = PBKDF2(key, key, strlen((const char*)key), salt, SALT_SIZE, 4096, 
         size, SHA256);
     if (ret != 0)
-        return -1030;
+        return ret;
 
     return 0;
 }
@@ -630,7 +634,7 @@ int NoEcho(char* key, int size)
 
     if (tcsetattr(fileno(stdin), TCSANOW, &nflags) != 0) {
         printf("Error\n");
-        return -1060;
+        return FATAL_ERROR;
     }
 
     printf("Key: ");
@@ -639,7 +643,7 @@ int NoEcho(char* key, int size)
     /* restore terminal */
     if (tcsetattr(fileno(stdin), TCSANOW, &oflags) != 0) {
         printf("Error\n");
-        return -1070;
+        return FATAL_ERROR;
     }
     return 0;
 }
@@ -718,6 +722,9 @@ int Encrypt(char* alg, char* mode, byte* key, int size, char* in, char* out,
 	    input = malloc(length);
 	    /* reads from inFile and wrties whatever is there to the input array */
 	    ret = fread(input, 1, inputLength, inFile);
+        if (ret != inputLength) {
+            return FREAD_ERROR;
+        }
 	}
 	else {
 		/* else use user entered data to encrypt */
@@ -746,12 +753,12 @@ int Encrypt(char* alg, char* mode, byte* key, int size, char* in, char* out,
     if (iv && iv[0] == '\0') {
     	ret = RNG_GenerateBlock(&rng, iv, block);
     	if (ret != 0)
-        	return -1020;
+        	return ret;
 	}
     /* stretches key to fit size */
     ret = GenerateKey(&rng, key, size, salt, padCounter);
     if (ret != 0) 
-        return -1040;
+        return ret;
 
     /* sets key encrypts the message to ouput from input length + padding */
 #ifndef NO_AES
@@ -759,10 +766,10 @@ int Encrypt(char* alg, char* mode, byte* key, int size, char* in, char* out,
         if (strcmp(mode, "cbc") == 0) {
 		    ret = AesSetKey(&aes, key, AES_BLOCK_SIZE, iv, AES_ENCRYPTION);
 	        if (ret != 0)
-	            return -1001;
+	            return ret;
 	        ret = AesCbcEncrypt(&aes, output, input, length);
 	        if (ret != 0)
-    	        return -1002;
+    	        return ENCRYPT_ERROR;
         }
 #ifdef CYASSL_AES_COUNTER
         else if (strcmp(mode, "ctr") == 0) {
@@ -776,23 +783,23 @@ int Encrypt(char* alg, char* mode, byte* key, int size, char* in, char* out,
 	if (strcmp(alg, "3des") == 0) {
 		ret = Des3_SetKey(&des3, key, iv, DES_ENCRYPTION);
 	    if (ret != 0)
-	        return -1011;
+	        return ret;
         ret = Des3_CbcEncrypt(&des3, output, input, length);
 	    if (ret != 0)
-	        return -1012;
+	        return ENCRYPT_ERROR;
 	}
 #endif
 #ifdef HAVE_CAMELLIA
 	if (strcmp(alg, "camellia") == 0) {
 	    ret = CamelliaSetKey(&camellia, key, block, iv);
 	    if (ret != 0)
-	        return -1021;
+	        return ret;
         if (strcmp(mode, "cbc") == 0) {
 	        CamelliaCbcEncrypt(&camellia, output, input, length);
         }
         else {
             printf("Incompatible mode\n");
-            return -1022;
+            return FATAL_ERROR;
         }
 	}
 #endif /* HAVE_CAMELLIA */
@@ -843,7 +850,7 @@ int Decrypt(char* alg, char* mode, byte* key, int size, char* in, char* out,
     inFile = fopen(in, "r");
 	if (inFile == NULL) {
         printf("Input file does not exist.\n");
-        return -1010;
+        return DECRYPT_ERROR;
     }
     outFile = fopen(out, "w");
 
@@ -859,9 +866,9 @@ int Decrypt(char* alg, char* mode, byte* key, int size, char* in, char* out,
 
     /* reads from inFile and wrties whatever is there to the input array */
     ret = fread(input, 1, length, inFile);
-    if (ret == 0) {
+    if (ret != length) {
         printf("Input file does not exist.\n");
-        return -1010;
+        return FREAD_ERROR;
     }
     for (i = 0; i < SALT_SIZE; i++) {
         /* finds salt from input message */
@@ -878,7 +885,7 @@ int Decrypt(char* alg, char* mode, byte* key, int size, char* in, char* out,
     ret = PBKDF2(key, key, strlen((const char*)key), salt, SALT_SIZE, 4096, 
         size, SHA256);
     if (ret != 0)
-        return -1050;
+        return ret;
 
 	/* change length to remove salt/iv block from being decrypted */
     length -= (block + SALT_SIZE);
@@ -892,10 +899,10 @@ int Decrypt(char* alg, char* mode, byte* key, int size, char* in, char* out,
         if (strcmp(mode, "cbc") == 0) {
 		    ret = AesSetKey(&aes, key, AES_BLOCK_SIZE, iv, AES_DECRYPTION);
 	        if (ret != 0)
-	            return -1001;
+	            return ret;
 	        ret = AesCbcDecrypt(&aes, output, input, length);
 	        if (ret != 0)
-	            return -1005;
+	            return DECRYPT_ERROR;
         }
 #ifdef CYASSL_AES_COUNTER
         else if (strcmp(mode, "ctr") == 0) {
@@ -909,17 +916,17 @@ int Decrypt(char* alg, char* mode, byte* key, int size, char* in, char* out,
 	if (strcmp(alg, "3des") == 0) {
 		ret = Des3_SetKey(&des3, key, iv, DES_DECRYPTION);
 	    if (ret != 0)
-	        return -1002;
+	        return ret;
 	    ret = Des3_CbcDecrypt(&des3, output, input, length);
 	    if (ret != 0)
-	        return -1005;
+	        return DECRYPT_ERROR;
 	}
 #endif
 #ifdef HAVE_CAMELLIA
 	if (strcmp(alg, "camellia") == 0) {
 	    ret = CamelliaSetKey(&camellia, key, block, iv);
 	    if (ret != 0)
-	        return -1001;
+	        return ret;
 	    /* encrypts the message to the ouput based on input length + padding */
 	    CamelliaCbcDecrypt(&camellia, output, input, length);
 	}
@@ -1313,12 +1320,12 @@ int Hash(char* in, char* out, char* alg, int size)
         input = malloc(length);
         if (input == NULL) {
             printf("Failed to create input buffer\n");
-            ret = -2;
+            return FATAL_ERROR;
         }
         ret = fread(input, 1, length, inFile);
         if (ret != length) {
             printf("Failed to read from input\n");
-            ret = -3;
+            return FREAD_ERROR;
         }
         fclose(inFile);
     }

@@ -62,7 +62,7 @@ int main(int argc, char** argv)
     }
     else {
         printf("Invalid selection. For a list of commands type -help\n");
-        return -1;
+        return FATAL_ERROR;
     }
     return ret;
 }

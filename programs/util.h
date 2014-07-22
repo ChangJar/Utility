@@ -29,6 +29,8 @@
 #include <cyassl/ctaocrypt/pwdbased.h>
 #include <cyassl/ctaocrypt/aes.h>
 #include <cyassl/ctaocrypt/des3.h>
+#include <cyassl/ctaocrypt/error-crypt.h>
+#include <cyassl/error-ssl.h>
 
 #ifndef NO_MD5
     #include <cyassl/ctaocrypt/md5.h>
