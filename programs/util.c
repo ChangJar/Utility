@@ -326,7 +326,7 @@ int Has(int argc, char** argv)
 	int ret = 0;
 	int i = 0;
     char*   in;
-    char*   out;
+    char*   out = NULL;
 	char* algs[] = {
 #ifndef NO_MD5
         "-md5"
