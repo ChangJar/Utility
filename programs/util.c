@@ -548,12 +548,13 @@ int GetAlgorithm(char* name, char** alg, char** mode, int* size)
         if (strcmp(*alg, acceptAlgs[i]) == 0 )
             nameCheck = 1;
     }
-    *mode = strtok(NULL, "-");
-    for (i = 0; i < sizeof(acceptMode)/sizeof(acceptMode[0]); i++) {
-        if (strcmp(*mode, acceptMode[i]) == 0)
-            modeCheck = 1;
+    if (nameCheck != 0) {
+        *mode = strtok(NULL, "-");
+        for (i = 0; i < sizeof(acceptMode)/sizeof(acceptMode[0]); i++) {
+            if (strcmp(*mode, acceptMode[i]) == 0)
+                modeCheck = 1;
+            }
     }
-
     if (nameCheck == 0 || modeCheck == 0) {
         printf("Invalid entry\n");
         return FATAL_ERROR;
