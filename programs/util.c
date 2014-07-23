@@ -389,15 +389,7 @@ int Has(int argc, char** argv)
             i++;
         }
         else if (strcmp(argv[i], "-s") == 0 && argv[i+1] != NULL) {
-#ifndef HAVE_BLAKE2
-            printf("Sorry, only to be used with Blake2b enabled\n");
-#else
             size = atoi(argv[i+1]);
-            if (size <= 0 || size > 64) {
-                printf("Invalid size, Must be between 1-64. Using default.\n");
-                size = BLAKE_DIGEST_SIZE;
-            }
-#endif
             i++;
         }
         else {
@@ -1299,6 +1291,7 @@ int Hash(char* in, char* out, char* alg, int size)
 
     byte*   input;
     byte*   output;
+    byte*   temp;
 
     int length;
     int ret;
@@ -1310,24 +1303,34 @@ int Hash(char* in, char* out, char* alg, int size)
     memset(output, 0, size);
     inFile = fopen(in, "r");
     if (inFile == NULL) {
-        length = sizeof(in);
+        length = strlen(in);
         input = malloc(length);
-        memcpy(input, in, length);
+        strcpy((char*)input, in);
+        for (i = 0; i < length; i++)
+            printf("%02x", input[i]);
+        printf("\n");
     }
     else {
         fseek(inFile, 0, SEEK_END);
         length = ftell(inFile);
         fseek(inFile, 0, SEEK_SET);
         input = malloc(length);
+        length-=1;
+        temp = malloc(length);
         if (input == NULL) {
             printf("Failed to create input buffer\n");
             return FATAL_ERROR;
         }
-        ret = fread(input, 1, length, inFile);
+        ret = fread(temp, 1, length, inFile);
         if (ret != length) {
             printf("Failed to read from input\n");
             return FREAD_ERROR;
         }
+        strcpy((char*)input, (char*)temp);
+        for (i = 0; i < length; i++) 
+        printf("%02x",  input[i]);
+        printf("\n");
+        free(temp);
         fclose(inFile);
     }
 #ifndef NO_MD5    
@@ -1386,6 +1389,8 @@ int Hash(char* in, char* out, char* alg, int size)
             printf("\n");
         }
     }
+    memset(input, 0, length);
+    memset(output, 0, size);
     free(input);
     free(output);
     return ret;
