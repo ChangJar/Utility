@@ -1291,7 +1291,6 @@ int Hash(char* in, char* out, char* alg, int size)
 
     byte*   input;
     byte*   output;
-    byte*   temp;
 
     int length;
     int ret;
@@ -1312,25 +1311,21 @@ int Hash(char* in, char* out, char* alg, int size)
     }
     else {
         fseek(inFile, 0, SEEK_END);
-        length = ftell(inFile);
+        length = ftell(inFile)-1;
         fseek(inFile, 0, SEEK_SET);
         input = malloc(length);
-        length-=1;
-        temp = malloc(length);
         if (input == NULL) {
             printf("Failed to create input buffer\n");
             return FATAL_ERROR;
         }
-        ret = fread(temp, 1, length, inFile);
+        ret = fread(input, 1, length, inFile);
         if (ret != length) {
             printf("Failed to read from input\n");
             return FREAD_ERROR;
         }
-        strcpy((char*)input, (char*)temp);
         for (i = 0; i < length; i++) 
         printf("%02x",  input[i]);
         printf("\n");
-        free(temp);
         fclose(inFile);
     }
 #ifndef NO_MD5    
