@@ -553,7 +553,6 @@ int Bench(int argc, char** argv)
                 optionCheck = 1;
             }
         }
-
         if (strcmp(argv[i], "-t") == 0 && argv[i+1] != NULL) {
             /* time for each test in seconds */
             time = atoi(argv[i+1]);
@@ -1087,6 +1086,7 @@ int Benchmark(int timer, int* option)
     InitRng(&rng);
 
     signal(SIGALRM, Stopf);
+    i = 0;
 #ifndef NO_AES
     /* aes test */
     if (option[i] == 1) {
