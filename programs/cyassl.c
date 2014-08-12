@@ -48,16 +48,16 @@ int main(int argc, char** argv)
             num = i;
     }
 
-    if (num == 0) { 
+    if (num == 0) {             //encryption function
         ret = Enc(argc, argv);
     }
-    else if (num == 1) {
+    else if (num == 1) {        //decryption function
         ret = Dec(argc, argv);
     }
-    else if (num == 2) {
+    else if (num == 2) {        //hashing function
         ret = Has(argc, argv);
     }
-    else if (num == 3) {
+    else if (num == 3) {        //benchmarking funciton
         ret = Bench(argc, argv);
     }
     else {

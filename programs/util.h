@@ -24,6 +24,8 @@
 #include <unistd.h>
 #include <termios.h>
 #include <sys/time.h>
+
+/* cyassl includes */
 #include <cyassl/options.h>
 #include <cyassl/ctaocrypt/random.h>
 #include <cyassl/ctaocrypt/pwdbased.h>
@@ -63,21 +65,35 @@
 #define MEGABYTE (1024*1024)
 #define MAX_THREADS 64
 
+/* encryption argument function */
 int Enc(int argc, char** argv);
+/* decryption argument function */
 int Dec(int argc, char** argv);
+/* help funciton */
 void Help(char* name);
+/* hash argument funtion */
 int Has(int argc, char** argv);
+/* benchmark argument funtion */
 int Bench(int argc, char** argv);
+/* find algrorithm for encrtyption/decryption */
 int GetAlgorithm(char* name, char** alg, char** mode, int* size);
+/* generates key based on password provided */
 int GenerateKey(RNG* rng, byte* key, int size, byte* salt, int pad);
+/* secure entry of password */
 int NoEcho(char* key, int size);
+/* adds characters to end of string */
 void Append(char* s, char c);
+/* finds current time during runtime */
 double CurrTime(void);
+/* encryption function */
 int Encrypt(char* alg, char* mode, byte* key, int size, char* in, 
 	char* out, byte* iv, int block);
+/* decryption function */
 int Decrypt(char* alg, char* mode, byte* key, int size, char* in, 
 	char* out, byte* iv, int block);
+/* benchmarking function */
 int Benchmark(int timer, int* option);
-int Hash(char* in, char* out, char* alg, int size);
+/* hashing fucntion */
+int Hash(char* in, char* len, char* out, char* alg, int size);
 #endif
 

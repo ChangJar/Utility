@@ -29,29 +29,33 @@
 
 #endif /* HAVE_BLAKE2 */
 
-int loop = 1;
-int64_t blocks;
+int     loop    = 1;            /* benchmarking loop */
+int     i       = 0;            /* loop variable */
+int64_t blocks;                 /* blocks used during benchmarking */
 
+/*
+ * encryption argument function
+ */
 int Enc(int argc, char** argv)
 {
-    char*    name;
-    char*    alg;
-    char*    mode;
-    char*    in;
-    char*    out;
-    byte*    key;
-    byte*    iv;
+    char*    name;              /* string of algorithm, mode, keysize */
+    char*    alg;               /* algorithm from name */
+    char*    mode;              /* mode from name */
+    char*    in;                /* input file/text provided */
+    char*    out;               /* output file if provided */
+    byte*    key;               /* password for generating key */
+    byte*    iv;                /* iv for initial encryption */
 
-    char     outName[256] = "encrypted";
-    int      size = 0;
-    int      i = 0;
-    int      ret = 0;
-    int      block = 0;
-    int      keyCheck = 0;   
-    int      inCheck = 0;
-    int      outCheck = 0;
-    int      mark = 0;
+    char     outName[256] = "encrypted"; /* name for outFile if not provided */
+    int      size       =   0;  /* keysize from name */
+    int      ret        =   0;  /* return variable */
+    int      block      =   0;  /* block size based on algorithm */
+    int      keyCheck   =   0;  /* if a key has been provided */
+    int      inCheck    =   0;  /* if input has been provided */
+    int      outCheck   =   0;  /* if output has been provided */
+    int      mark       =   0;  /* used for getting file extension of in */
 
+    /* help checking */
     if (argc == 2) {
         Help("encrypt");
         return 0;
@@ -65,6 +69,7 @@ int Enc(int argc, char** argv)
     }
 
     name = argv[2];
+    /* gets blocksize, algorithm, mode, and key size from name argument */
     block = GetAlgorithm(name, &alg, &mode, &size);
     
     if (block != FATAL_ERROR) {
@@ -74,21 +79,25 @@ int Enc(int argc, char** argv)
 
         for (i = 3; i < argc; i++) {
             if (strcmp(argv[i], "-i") == 0 && argv[i+1] != NULL) {
+                /* input file/text */
                 in = argv[i+1];
                 inCheck = 1;
                 i++;
             }
             else if (strcmp(argv[i], "-o") == 0 && argv[i+1] != NULL) {
+                /* output file */
                 out = argv[i+1];
                 outCheck = 1;
                 i++;
             }
             else if (strcmp(argv[i], "-k") == 0 && argv[i+1] != NULL) {
+                /* password key */
                 memcpy(key, argv[i+1], size);
                 keyCheck = 1;
                 i++;
             }
             else if (strcmp(argv[i], "-iv") == 0 && argv[i+1] != NULL) {
+                /* iv for encryption */
                 if (strlen(argv[i+1]) != block) {
                     printf("Invalid IV. Must match algorithm block size.\n");
                     printf("Randomly Generating IV.\n");
@@ -103,14 +112,17 @@ int Enc(int argc, char** argv)
             }
         }
         if (inCheck == 0) {
+            /* if no input is provided */
             printf("Must have input as either a file or standard I/O\n");
             return FATAL_ERROR;
         }
         if (keyCheck == 0) {
+            /* if no key is provided */
             ret = NoEcho((char*)key, size);
         }
         if (outCheck == 0 && ret == 0) {
             out = outName;
+            /* gets file extension of input type */
             for (i = 0; i < strlen(in); i++) {
                 if ((in[i] == '.') || (mark == 1)) {
                     mark = 1;
@@ -118,8 +130,12 @@ int Enc(int argc, char** argv)
                 }
             }
         }
+        /* encryption function */
         ret = Encrypt(alg, mode, key, size, in, out, iv, block);
 
+        /* clear and free data */
+        memset(key, 0, size);
+        memset(iv, 0, block);
         free(key);
         free(iv);
     }
@@ -128,26 +144,29 @@ int Enc(int argc, char** argv)
     return ret;
 }
 
+/*
+ * decryption argument function
+ */ 
 int Dec(int argc, char** argv)
 {
-    char*    name;
-    char*    alg;
-    char*    mode;
-    char*    in;
-    char*    out;
-    byte*    key;
-    byte*    iv;
+    char*    name;              /* string of algorithm, mode, keysize */
+    char*    alg;               /* algorithm from name */
+    char*    mode;              /* mode from name */
+    char*    in;                /* input file/text provided */
+    char*    out;               /* output file if provided */
+    byte*    key;               /* password for generating key */
+    byte*    iv;                /* iv for initial encryption */
 
-    char     outName[256] = "decrypted";
-    int      size = 0;
-    int      i = 0;
-    int      ret = 0;
-    int      block = 0;
-    int      keyCheck = 0;   
-    int      inCheck = 0;
-    int      outCheck = 0;
-    int      mark = 0;
+    char     outName[256] = "decrypted"; /* name for outFile if not provided */
+    int      size       =  0;   /* keysize from name */
+    int      ret        =  0;   /* return variable */
+    int      block      =  0;   /* block size based on algorithm */
+    int      keyCheck   =  0;   /* if a key has been provided */
+    int      inCheck    =  0;   /* if input has been provided */
+    int      outCheck   =  0;   /* if output has been provided */
+    int      mark       =  0;   /* used for getting file extension of in */
 
+    /* help checking */
     if (argc == 2) {
         Help("decrypt");
         return 0;
@@ -161,7 +180,9 @@ int Dec(int argc, char** argv)
     }
 
     name = argv[2];
+    /* gets blocksize, algorithm, mode, and key size from name argument */
     block = GetAlgorithm(name, &alg, &mode, &size);
+
     if (block != FATAL_ERROR) {
         key = malloc(size);
         iv = malloc(block);
@@ -169,21 +190,25 @@ int Dec(int argc, char** argv)
 
         for (i = 3; i < argc; i++) {
             if (strcmp(argv[i], "-i") == 0 && argv[i+1] != NULL) {
+                /* input file/text */
                 in = argv[i+1];
                 inCheck = 1;
                 i++;
             }
             else if (strcmp(argv[i], "-o") == 0 && argv[i+1] != NULL) {
+                /* output file */
                 out = argv[i+1];
                 outCheck = 1;
                 i++;
             }
             else if (strcmp(argv[i], "-k") == 0 && argv[i+1] != NULL) {
+                /* password key */
                 memcpy(key, argv[i+1], size);
                 keyCheck = 1;
                 i++;
             }
             else if (strcmp(argv[i], "-iv") == 0 && argv[i+1] != NULL) {
+                /* iv for decryption */
                 if (strlen(argv[i+1]) != block) {
                     printf("Invalid IV. Must match algorithm block size.\n");
                     printf("Randomly Generating IV.\n");
@@ -198,14 +223,17 @@ int Dec(int argc, char** argv)
             }
         }
         if (inCheck == 0) {
+            /* if no input is provided */
             printf("Must have input as a file\n");
             return FATAL_ERROR;
         }
         if (keyCheck == 0) {
+            /* if no key is provided */
             ret = NoEcho((char*)key, size);
         }
         if (outCheck == 0 && ret == 0) {
             out = outName;
+            /* gets file type of input file */
             for (i = 0; i < strlen(in); i++) {
                 if ((in[i] == '.') || (mark == 1)) {
                     mark = 1;
@@ -213,8 +241,12 @@ int Dec(int argc, char** argv)
                 }
             }
         }
+        /* decryption function */
         ret = Decrypt(alg, mode, key, size, in ,out, iv, block);
-
+        
+        /* clear and free data */
+        memset(key, 0, size);
+        memset(iv, 0, block);
         free(key);
         free(iv);
     }
@@ -223,12 +255,14 @@ int Dec(int argc, char** argv)
     return ret;
 }
 
+/*
+ * help function
+ */ 
 void Help(char* name)
 {
-    if (strcmp(name, "hash") == 0)
-    {
-        int i;
-        char* algs[] = {
+    if (strcmp(name, "hash") == 0) {
+        /* hash help prints hash options */
+        char* algs[] = {        /* list of acceptable algorithms */
 #ifndef NO_MD5
             "-md5"
 #endif
@@ -239,13 +273,13 @@ void Help(char* name)
             ,"-sha256"
 #endif
 #ifdef CYASSL_SHA384
-        ,"-sha384"
+            ,"-sha384"
 #endif
 #ifdef CYASSL_SHA512
-        ,"-sha512"
+            ,"-sha512"
 #endif
 #ifdef HAVE_BLAKE2
-        ,"-blake2b"
+            ,"-blake2b"
 #endif
         };
 
@@ -259,8 +293,8 @@ void Help(char* name)
         printf("\n");
     }
     else if (strcmp(name, "bench") == 0) {
-        int i;
-        char* algs[] = {
+        /* benchmark help lists benchmark options */
+        char* algs[] = {        /* list of acceptable algorithms */
 #ifndef NO_AES
             "-aes-cbc"
 #endif
@@ -301,6 +335,7 @@ void Help(char* name)
         printf("\n");
     }
     else {
+        /* encryption/decryption help lists options */
         printf("\nUSAGE: cyassl %s <-algorithm> <-i filename> ", name);
         printf("[-o filename] [-k password] [-iv IV]\n\n"
                "Acceptable Algorithms");
@@ -321,13 +356,15 @@ void Help(char* name)
     }
 }
 
+/*
+ * hash argument function
+ */
 int Has(int argc, char** argv)
 {
-	int ret = 0;
-	int i = 0;
-    char*   in;
-    char*   out = NULL;
-	char* algs[] = {
+	int     ret     =   0;      /* return variable */
+    char*   in;                 /* input variable */
+    char*   out     =   NULL;   /* output variable */
+	char*   algs[]  =   {       /* list of acceptable algorithms */
 #ifndef NO_MD5
         "-md5"
 #endif
@@ -348,14 +385,17 @@ int Has(int argc, char** argv)
 #endif
         };
 
-	char* alg;
-    int algCheck = 0;
-	int inCheck = 0;
-    int size = 0;
+	char*   alg;                /* algorithm being used */
+    int     algCheck=   0;      /* acceptable algorithm check */
+	int     inCheck =   0;      /* input check */
+    int     size    =   0;      /* message digest size */           
+    char*   len     =   NULL;   /* length to be hashed */
+
 #ifdef HAVE_BLAKE2
     size = BLAKE_DIGEST_SIZE;
 #endif
 
+    /* help checking */
     if (argc == 2) {
         Help("hash");
         return 0;
@@ -366,7 +406,9 @@ int Has(int argc, char** argv)
             return 0;
         }
     }
+
     for (i = 0; i < sizeof(algs)/sizeof(algs[0]); i++) {
+        /* checks for acceptable algorithms */
 		if (strcmp(argv[2], algs[i]) == 0) {
 			alg = argv[2];
             algCheck = 1;
@@ -379,19 +421,38 @@ int Has(int argc, char** argv)
 
 	for (i = 3; i < argc; i++) {
         if (strcmp(argv[i], "-i") == 0 && argv[i+1] != NULL) {
-            in = malloc(strlen(argv[i+1]));
-            strcpy(in,  &argv[i+1][0]);
+            /* input file/text */
+            in = malloc(strlen(argv[i+1])+1);
+            strcpy(in, &argv[i+1][0]);
+            in[strlen(argv[i+1])] = '\0';
             inCheck = 1;
             i++;
         }
         else if (strcmp(argv[i], "-o") == 0 && argv[i+1] != NULL) {
+            /* output file */
             out = argv[i+1];
             i++;
         }
         else if (strcmp(argv[i], "-s") == 0 && argv[i+1] != NULL) {
+            /* size of output */
+#ifndef HAVE_BLAKE2
+            printf("Sorry, only to be used with Blake2b enabled\n");
+#else
             size = atoi(argv[i+1]);
+            if (size <= 0 || size > 64) {
+                printf("Invalid size, Must be between 1-64. Using default.\n");
+                size = BLAKE_DIGEST_SIZE;
+            }
+#endif
             i++;
         }
+        else if (strcmp(argv[i], "-l") == 0) {
+            /* length of string to hash */
+            len = malloc(strlen(argv[i+1])+1);
+            strcpy(len, &argv[i+1][0]);
+            len[strlen(argv[i+1])] = '\0';
+            i++;
+        } 
         else {
             printf("Unknown argument %s. Ignoring\n", argv[i]);
         }
@@ -400,7 +461,7 @@ int Has(int argc, char** argv)
         printf("Must have input as either a file or standard I/O\n");
         return FATAL_ERROR;
     }
-    
+    /* sets default size of algorithm */
 #ifndef NO_MD5
     if (strcmp(alg, "-md5") == 0) 
         size = MD5_DIGEST_SIZE;
@@ -426,61 +487,67 @@ int Has(int argc, char** argv)
         size = SHA512_DIGEST_SIZE;
 #endif
 
-    Hash(in, out, alg, size);
+    /* hashing function */
+    Hash(in, len, out, alg, size);
 
     free(in);
-
+    free(len);
+    
 	return ret;
 }
 
+/*
+ * benchmark argument function
+ */
 int Bench(int argc, char** argv)
 {
-    int ret = 0;
-    int time = 3;
-    int i = 0;
-    int j = 0;
-    char* algs[] = {
+    int     ret     =   0;      /* return variable */
+    int     time    =   3;      /* timer variable */
+    int     j       =   0;      /* second loop variable */
+    char*   algs[]  =   {       /* list of acceptable algorithms */
 #ifndef NO_AES
-            "-aes-cbc"
+        "-aes-cbc"
 #endif
 #ifdef CYASSL_AES_COUNTER
-            , "-aes-ctr"
+        , "-aes-ctr"
 #endif
 #ifndef NO_DES3
-            , "-3des"
+        , "-3des"
 #endif
 #ifdef HAVE_CAMELLIA
-            , "-camellia"
+        , "-camellia"
 #endif
 #ifndef NO_MD5
-            , "-md5"
+        , "-md5"
 #endif
 #ifndef NO_SHA
-            , "-sha"
+        , "-sha"
 #endif
 #ifndef NO_SHA256
-            , "-sha256"
+        , "-sha256"
 #endif
 #ifdef CYASSL_SHA384
-            , "-sha384"
+        , "-sha384"
 #endif
 #ifdef CYASSL_SHA512
-            , "-sha512"
+        , "-sha512"
 #endif
 #ifdef HAVE_BLAKE2
-            , "-blake2b"
+        , "-blake2b"
 #endif
         };
 
-    int option[sizeof(algs)/sizeof(algs[0])] = {0};
-    int optionCheck = 0;
+    int option[sizeof(algs)/sizeof(algs[0])] = {0};/* acceptable options */
+    int optionCheck = 0;                           /* acceptable option check */
 
     for (i = 2; i < argc; i++) {
         if (strcmp(argv[i], "-help") == 0) {
+            /* help checking */
             Help("bench");
             return 0;
         }
         for (j = 0; j < sizeof(algs)/sizeof(algs[0]); j++) {
+            /* checks for individual tests in the arguments */
             if (strcmp(argv[i], algs[j]) == 0) {
                 option[j] = 1;    
                 optionCheck = 1;
@@ -488,6 +555,7 @@ int Bench(int argc, char** argv)
         }
 
         if (strcmp(argv[i], "-t") == 0 && argv[i+1] != NULL) {
+            /* time for each test in seconds */
             time = atoi(argv[i+1]);
             if (time < 1 || time > 10) {
                 printf("Invalid time, must be between 1-10. Using default.\n");
@@ -496,29 +564,35 @@ int Bench(int argc, char** argv)
             i++;
         }
         if (strcmp(argv[i], "-all") == 0) {
+            /* perform all available tests */
             for (j = 0; j < sizeof(algs)/sizeof(algs[0]); j++) {
                 option[j] = 1;
                 optionCheck = 1;
             }
         }
     }
-    if (optionCheck != 1)
+    if (optionCheck != 1) {
+        /* help checking */
         Help("bench");
+    }
     else {
+        /* benchmarking function */
         printf("\nTesting for %d second(s)\n", time);
         ret = Benchmark(time, option);
     }
     return ret;
 }
 
+/*
+ * finds algorithm for encryption/decryption
+ */
 int GetAlgorithm(char* name, char** alg, char** mode, int* size)
 {
-	int 	ret = 0;
-    int     i;
-    int     nameCheck = 0;
-	int     modeCheck = 0;
-    char*	sz = 0;
-    char* acceptAlgs[] = {
+	int 	ret         = 0;        /* return variable */
+    int     nameCheck   = 0;        /* check for acceptable name */
+	int     modeCheck   = 0;        /* check for acceptable mode */
+    char*	sz          = 0;        /* key size provided */
+    char* acceptAlgs[]  = {         /* list of acceptable algorithms */
 #ifndef NO_AES
         "aes"
 #endif
@@ -535,11 +609,13 @@ int GetAlgorithm(char* name, char** alg, char** mode, int* size)
 #endif
     };
 
+    /* gets name after first '-' and before the second */
 	*alg = strtok(name, "-");
     for (i = 0; i < sizeof(acceptAlgs)/sizeof(acceptAlgs[0]); i++) {
         if (strcmp(*alg, acceptAlgs[i]) == 0 )
             nameCheck = 1;
     }
+    /* gets mode after second "-" and before the third */
     if (nameCheck != 0) {
         *mode = strtok(NULL, "-");
         for (i = 0; i < sizeof(acceptMode)/sizeof(acceptMode[0]); i++) {
@@ -547,18 +623,21 @@ int GetAlgorithm(char* name, char** alg, char** mode, int* size)
                 modeCheck = 1;
             }
     }
+    /* if name or mode doesn't match acceptable options */
     if (nameCheck == 0 || modeCheck == 0) {
         printf("Invalid entry\n");
         return FATAL_ERROR;
     }
 
+    /* gets size after thrid "-" */
 	sz = strtok(NULL, "-");
 	*size = atoi(sz);
+    
+    /* checks key sizes for acceptability */
 #ifndef NO_AES
 	if (strcmp(*alg, "aes") == 0) {
 		ret = AES_BLOCK_SIZE;
         if (*size != 128 && *size != 192 && *size != 256) {
-            /* if the entered size does not match acceptable size */
             printf("Invalid AES key size\n");
             ret = FATAL_ERROR;
         }
@@ -568,7 +647,6 @@ int GetAlgorithm(char* name, char** alg, char** mode, int* size)
 	else if (strcmp(*alg, "3des") == 0) {
 		ret = DES3_BLOCK_SIZE;
         if (*size != 56 && *size != 112 && *size != 168) {
-            /* if the entered size does not match acceptable size */
             printf("Invalid 3DES key size\n");
             ret = FATAL_ERROR;
         }
@@ -578,7 +656,6 @@ int GetAlgorithm(char* name, char** alg, char** mode, int* size)
 	else if (strcmp(*alg, "camellia") == 0) {
 	    ret = CAMELLIA_BLOCK_SIZE;
         if (*size != 128 && *size != 192 && *size != 256) {
-            /* if the entered size does not match acceptable size */
             printf("Invalid Camellia key size\n");
             ret = FATAL_ERROR;
         }
@@ -593,12 +670,13 @@ int GetAlgorithm(char* name, char** alg, char** mode, int* size)
 }
 
 /*
- * Makes a cyptographically secure key by stretching a user entered key
+ * makes a cyptographically secure key by stretching a user entered key
  */
 int GenerateKey(RNG* rng, byte* key, int size, byte* salt, int pad)
 {
-    int ret;
+    int ret;        /* return variable */
 
+    /* randomly generates salt */
     ret = RNG_GenerateBlock(rng, salt, SALT_SIZE-1);
     if (ret != 0)
         return ret;
@@ -615,6 +693,9 @@ int GenerateKey(RNG* rng, byte* key, int size, byte* salt, int pad)
     return 0;
 }
 
+/*
+ * secure data entry by turning off key echoing in the terminal
+ */
 int NoEcho(char* key, int size)
 {
     struct termios oflags, nflags;
@@ -641,18 +722,28 @@ int NoEcho(char* key, int size)
     return 0;
 }
 
+/*
+ * adds character to end of string 
+ */
 void Append(char* s, char c)
 {
-    int len = strlen(s);
+    int len = strlen(s); /* length of string*/
+
     s[len] = c;
     s[len+1] = '\0';
 }
 
+/*
+ * resets benchmarking loop
+ */
 void Stopf(int signo)
 {
     loop = 0;
 }
 
+/*
+ * gets current time durring program execution
+ */
 double CurrTime(void)
 {
     struct timeval tv;
@@ -662,6 +753,9 @@ double CurrTime(void)
     return (double)tv.tv_sec + (double)tv.tv_usec / 1000000;
 }
 
+/* 
+ * prints out stats for benchmarking
+ */
 void Stats(double start, int blockSize)
 {
     int64_t compBlocks = blocks;
@@ -674,33 +768,40 @@ void Stats(double start, int blockSize)
     printf("Average MB/s = %8.1f\n", mbs);
 }
 
+/*
+ * encryption funciton
+ */
 int Encrypt(char* alg, char* mode, byte* key, int size, char* in, char* out, 
 	byte* iv, int block)
 {
-	Aes aes;
-	Des3 des3;
+#ifndef NO_AES
+	Aes aes;                        /* aes declaration */
+#endif
+
+#ifndef NO_DES3
+	Des3 des3;                      /* 3des declaration */
+#endif
 
 #ifdef HAVE_CAMELLIA
-	Camellia camellia;
+	Camellia camellia;              /* camellia declaration */
 #endif
-	FILE*  inFile;
-    FILE*  outFile;
+	FILE*  inFile;                  /* input file */
+    FILE*  outFile;                 /* output file */
 
-	RNG     rng;
-    byte*   input;
-    byte*   output;
-    byte    salt[SALT_SIZE] = {0};
+	RNG     rng;                    /* random number generator declaration */
+    byte*   input;                  /* input buffer */
+    byte*   output;                 /* output buffer */
+    byte    salt[SALT_SIZE] = {0};  /* salt variable */
 
-    int     i = 0;
-    int     ret = 0;
-    int     inputLength;
-    int     length;
-    int     padCounter = 0;
-    int 	fileCheck = 0;
+    int     ret             = 0;    /* return variable */
+    int     inputLength;            /* length of input */
+    int     length;                 /* total length */
+    int     padCounter = 0;         /* number of padded elements */
+    int 	fileCheck = 0;          /* if a file has been provided for input */
 
 	inFile = fopen(in, "r");
 	if (inFile != NULL) {
-		/* if there is a file. find lenght */
+		/* if there is a file. find length */
 		fileCheck = 1;
 	    fseek(inFile, 0, SEEK_END);
 	    inputLength = ftell(inFile);
@@ -744,6 +845,7 @@ int Encrypt(char* alg, char* mode, byte* key, int size, char* in, char* out,
     }
 
     if (iv && iv[0] == '\0') {
+        /* randomly generate iv if one has not been provided */
     	ret = RNG_GenerateBlock(&rng, iv, block);
     	if (ret != 0)
         	return ret;
@@ -766,6 +868,7 @@ int Encrypt(char* alg, char* mode, byte* key, int size, char* in, char* out,
         }
 #ifdef CYASSL_AES_COUNTER
         else if (strcmp(mode, "ctr") == 0) {
+            /* if mode is ctr */
             AesSetKeyDirect(&aes, key, AES_BLOCK_SIZE, iv, AES_ENCRYPTION);
             AesCtrEncrypt(&aes, output, input, length);
         }
@@ -802,7 +905,7 @@ int Encrypt(char* alg, char* mode, byte* key, int size, char* in, char* out,
     fwrite(iv, 1, block, outFile);
     fwrite(output, 1, length, outFile);
 
-    /* closes the opened files and frees the memory*/
+    /* closes the opened files and frees the memory */
     memset(input, 0, length);
     memset(output, 0, length);
     memset(key, 0, size);
@@ -811,42 +914,56 @@ int Encrypt(char* alg, char* mode, byte* key, int size, char* in, char* out,
     memset(mode, 0 , block);
     free(input);
     free(output);
-    if(fileCheck == 1)
+    if(fileCheck == 1)      /* if a file was used for input */
     	fclose(inFile);
     fclose(outFile);
     return 0;
 }
 
+/*
+ * decryption function
+ */
 int Decrypt(char* alg, char* mode, byte* key, int size, char* in, char* out, 
 	byte* iv, int block)
 {
-	Aes aes;
-	Des3 des3;
-
-#ifdef HAVE_CAMELLIA
-	Camellia camellia;
+#ifndef NO_AES
+	Aes aes;                        /* aes declaration */
 #endif
 
-	FILE*  inFile;
-    FILE*  outFile;
+#ifndef NO_DES3
+	Des3 des3;                      /* 3des declaration */
+#endif
 
-	RNG     rng;
-    byte*   input;
-    byte*   output;
-    byte    salt[SALT_SIZE] = {0};
+#ifdef HAVE_CAMELLIA
+	Camellia camellia;              /* camellia declaration */
+#endif
 
-    int     i = 0;
-    int     ret = 0;
-    int     length;
-    int 	aSize = 0;
+	FILE*  inFile;                  /* input file */
+    FILE*  outFile;                 /* output file */
 
+	RNG     rng;                    /* random number generator */
+    byte*   input;                  /* input buffer */
+    byte*   output;                 /* output buffer */
+    byte    salt[SALT_SIZE] = {0};  /* salt variable */
+
+    int     ret     = 0;            /* return variable */
+    int     length;                 /* length of message */
+    int 	aSize   = 0;            /* actual size of message */
+
+    /* opens input file */
     inFile = fopen(in, "r");
 	if (inFile == NULL) {
         printf("Input file does not exist.\n");
         return DECRYPT_ERROR;
     }
+    /* opens output file */
     outFile = fopen(out, "w");
+    if (outFile == NULL) {
+        printf("Error creating output file.\n");
+        return DECRYPT_ERROR; 
+    }
 
+    /* find end of file for length */
     fseek(inFile, 0, SEEK_END);
     length = ftell(inFile);
     fseek(inFile, 0, SEEK_SET);
@@ -899,6 +1016,7 @@ int Decrypt(char* alg, char* mode, byte* key, int size, char* in, char* out,
         }
 #ifdef CYASSL_AES_COUNTER
         else if (strcmp(mode, "ctr") == 0) {
+            /* if mode is ctr */
             AesSetKeyDirect(&aes, key, AES_BLOCK_SIZE, iv, AES_ENCRYPTION);
             AesCtrEncrypt(&aes, output, input, length);
         }
@@ -920,7 +1038,6 @@ int Decrypt(char* alg, char* mode, byte* key, int size, char* in, char* out,
 	    ret = CamelliaSetKey(&camellia, key, block, iv);
 	    if (ret != 0)
 	        return ret;
-	    /* encrypts the message to the ouput based on input length + padding */
 	    CamelliaCbcDecrypt(&camellia, output, input, length);
 	}
 #endif
@@ -932,7 +1049,7 @@ int Decrypt(char* alg, char* mode, byte* key, int size, char* in, char* out,
     /* writes output to the outFile based on shortened length */
     fwrite(output, 1, length, outFile);
 
-    /* closes the opened files and frees the memory*/
+    /* closes the opened files and frees the memory */
     memset(input, 0, aSize);
     memset(output, 0, aSize);
     memset(key, 0, size);
@@ -944,30 +1061,34 @@ int Decrypt(char* alg, char* mode, byte* key, int size, char* in, char* out,
     return 0;
 }
 
+/*
+ * benchmarking funciton 
+ */
 int Benchmark(int timer, int* option)
 {
 #ifndef NO_AES
-    Aes aes;
+    Aes aes;                /* aes declaration */
 #endif
+
 #ifndef NO_DES3
-	Des3 des3;
+	Des3 des3;              /* 3des declaration */
 #endif
 
-    RNG rng;
+    RNG rng;                /* random number generator */
 
-    int ret = 0;
-    double start;
-    int i = 0;
-    ALIGN16 byte* plain;
-    ALIGN16 byte* cipher;
-    ALIGN16 byte* key;
-    ALIGN16 byte* iv;
-    byte* digest;
+    int             ret = 0;/* return variable */
+    double          start;  /* start time */
+    ALIGN16 byte*   plain;  /* plain text */
+    ALIGN16 byte*   cipher; /* cipher */
+    ALIGN16 byte*   key;    /* key for testing */
+    ALIGN16 byte*   iv;     /* iv for initial encoding */
+    byte*           digest; /* message digest */
 
     InitRng(&rng);
 
     signal(SIGALRM, Stopf);
 #ifndef NO_AES
+    /* aes test */
     if (option[i] == 1) {
         plain = malloc(AES_BLOCK_SIZE);
         cipher = malloc(AES_BLOCK_SIZE);
@@ -1002,6 +1123,7 @@ int Benchmark(int timer, int* option)
     i++;
 #endif
 #ifdef CYASSL_AES_COUNTER
+    /* aes-ctr test */
     if (option[i] == 1) {
         plain = malloc(AES_BLOCK_SIZE);
         cipher = malloc(AES_BLOCK_SIZE);
@@ -1036,6 +1158,7 @@ int Benchmark(int timer, int* option)
     i++;
 #endif
 #ifndef NO_DES3
+    /* 3des test */
     if (option[i] == 1) {   
         plain = malloc(DES3_BLOCK_SIZE);
         cipher = malloc(DES3_BLOCK_SIZE);
@@ -1071,6 +1194,7 @@ int Benchmark(int timer, int* option)
     i++;
 #endif
 #ifdef HAVE_CAMELLIA
+    /* camellia test */
     if (option[i] == 1) {
     	Camellia camellia;
     
@@ -1109,6 +1233,7 @@ int Benchmark(int timer, int* option)
 #endif
 
 #ifndef NO_MD5
+    /* md5 test */
     if (option[i] == 1) {
         Md5 md5;
     
@@ -1138,6 +1263,7 @@ int Benchmark(int timer, int* option)
 #endif
 
 #ifndef NO_SHA
+    /* sha test */
     if (option[i] == 1) {
         Sha sha;
     
@@ -1167,6 +1293,7 @@ int Benchmark(int timer, int* option)
 #endif
 
 #ifndef NO_SHA256
+    /* sha256 test */
     if (option[i] == 1) {
         Sha256 sha256;
     
@@ -1196,6 +1323,7 @@ int Benchmark(int timer, int* option)
 #endif
 
 #ifdef CYASSL_SHA384
+    /* sha384 test */
     if (option[i] == 1) {
         Sha384 sha384;
     
@@ -1225,6 +1353,7 @@ int Benchmark(int timer, int* option)
 #endif
 
 #ifdef CYASSL_SHA512
+    /* sha512 test */
     if (option[i] == 1) {
         Sha512 sha512;
     
@@ -1254,6 +1383,7 @@ int Benchmark(int timer, int* option)
 #endif
 
 #ifdef HAVE_BLAKE2
+    /* blake2b test */
     if (option[i] == 1) {
         Blake2b  b2b;
     
@@ -1281,81 +1411,90 @@ int Benchmark(int timer, int* option)
     return ret;
 }
 
-int Hash(char* in, char* out, char* alg, int size)
+/*
+ * hashing function 
+ */
+int Hash(char* in, char* len, char* out, char* alg, int size)
 {
 #ifdef HAVE_BLAKE2
-    Blake2b hash;
+    Blake2b hash;               /* blake2b declaration */
 #endif
-    FILE*  inFile;
-    FILE*  outFile;
+    FILE*   inFile;              /* input file */
+    FILE*   outFile;             /* output file */
 
-    byte*   input;
-    byte*   output;
+    byte*   input;              /* input buffer */
+    byte*   output;             /* output buffer */
 
-    int length;
-    int ret;
-    int i;
-
-    char* dispName;
+    int     ret;                /* return variable */
+    int     length;             /* length of hash */
 
     output = malloc(size);
     memset(output, 0, size);
+
+    /* opens input file */
     inFile = fopen(in, "r");
     if (inFile == NULL) {
-        length = strlen(in);
+        /* if no input file was provided */
+        if (len != NULL)
+            /* if length was provided */
+            length = atoi(len);
+        else
+            length = strlen(in);
+
         input = malloc(length);
-        strcpy((char*)input, in);
-        for (i = 0; i < length; i++)
-            printf("%02x", input[i]);
-        printf("\n");
+        for (i = 0; i < length; i++) {
+            /* copies text from in to input */
+             if (i <= strlen(in))
+                input[i] = in[i];
+        }
     }
     else {
+        /* if input file provided finds end of file for length */
         fseek(inFile, 0, SEEK_END);
-        length = ftell(inFile)-1;
+        int leng = ftell(inFile);
         fseek(inFile, 0, SEEK_SET);
+
+        if (len != NULL) {
+            /* if length is provided */
+            length = atoi(len);
+            input = malloc(length);
+        }
+        else 
+            length = leng;
+        
         input = malloc(length);
         if (input == NULL) {
             printf("Failed to create input buffer\n");
             return FATAL_ERROR;
         }
-        ret = fread(input, 1, length, inFile);
-        if (ret != length) {
-            printf("Failed to read from input\n");
-            return FREAD_ERROR;
-        }
-        for (i = 0; i < length; i++) 
-        printf("%02x",  input[i]);
-        printf("\n");
+        ret = fread(input, 1, leng, inFile);
         fclose(inFile);
     }
+
+    /* hashes using accepted algorithm */
 #ifndef NO_MD5    
     if (strcmp(alg, "-md5") == 0) {
         ret = Md5Hash(input, length, output);
-        dispName = "MD5";
     }
 #endif
 #ifndef NO_SHA  
     else if (strcmp(alg, "-sha") == 0) {
         ret = ShaHash(input, length, output);
-        dispName = "SHA";
     }
 #endif
 #ifndef NO_SHA256  
     else if (strcmp(alg, "-sha256") == 0) {
         ret = Sha256Hash(input, length, output);
-        dispName = "SHA256";
     }
 #endif
 #ifdef CYASSL_SHA384
     else if (strcmp(alg, "-sha384") == 0) {
         ret = Sha384Hash(input, length, output);
-        dispName = "SHA384";
     }
 #endif
 #ifdef CYASSL_SHA512
     else if (strcmp(alg, "-sha512") == 0) {
         ret = Sha512Hash(input, length, output);
-        dispName = "SHA512";
     }
 #endif
 #ifdef HAVE_BLAKE2
@@ -1363,27 +1502,33 @@ int Hash(char* in, char* out, char* alg, int size)
         ret = InitBlake2b(&hash, size);
         ret = Blake2bUpdate(&hash, input, length);
         ret = Blake2bFinal(&hash, output, size);
-        dispName = "BLAKE2b";
     }
 #endif
     if (ret == 0) {
+        /* if no errors so far */
         if (out != NULL) {
+            /* if output file provided */
             outFile = fopen(out, "w");
             if (outFile != NULL) {
+                /* if outFile exists */
                 for (i = 0; i < size; i++) {
+                    /* writes hashed output to outFile */
                     fprintf(outFile, "%02x", output[i]);
                 }
                 fclose(outFile);
             }
         }
         else {
-            printf("%s(%s):\t", dispName, in);
+            /*  if no output file*/
             for (i = 0; i < size; i++) {
+                /* write hashed output to terminal */
                 printf("%02x", output[i]);
             }
             printf("\n");
         }
     }
+
+    /* closes the opened files and frees the memory */
     memset(input, 0, length);
     memset(output, 0, size);
     free(input);
