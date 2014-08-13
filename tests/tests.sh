@@ -1,7 +1,7 @@
 #Test utility functionality
 #!/bin/bash
-
-CYASSL="/home/cj/Documents/wolfSSL/Utility/programs/cyassl"
+PATH="/home/cj/Documents/wolfSSL/"
+CYASSL="$PATH/Utility/programs/cyassl"
 ENC="encrypt"
 DEC="decrypt"
 HASH="hash"
@@ -17,7 +17,7 @@ SHA3="-sha384"
 SHA5="-sha512"
 BLAKE="-blake2b"
 zero=0
-OPTS="/home/cj/Documents/wolfSSL/cyassl/cyassl/options.h"
+OPTS="$PATH/cyassl/cyassl/options.h"
 
 TIMER="$(date +%s)"
 
