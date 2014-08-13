@@ -6,4 +6,4 @@ To use this feature, please ./configure --enable-pwdbased
         --enable-sha512
         --enable-fortress
 
-then run make
+then run make from the programs folder
