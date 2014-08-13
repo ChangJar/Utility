@@ -14,11 +14,11 @@ function hashtest() {
     
     while read -r md; do
         if [[ $i -lt 10 ]]; then
-            FILE="byte000$i.dat"
+            FILE="/home/cj/Documents/wolfSSL/Utility/tests/byte000$i.dat"
         elif [[ $i -lt 100 ]]; then
-            FILE="byte00$i.dat"
+            FILE="/home/cj/Documents/wolfSSL/Utility/tests/byte00$i.dat"
         elif [[ $i -lt 1000 ]]; then
-            FILE="byte0$i.dat"
+            FILE="/home/cj/Documents/wolfSSL/Utility/tests/byte0$i.dat"
         else 
             break
         fi   
@@ -26,7 +26,7 @@ function hashtest() {
         md="${md:0:-$3}"
 #converts to lowercase
         md=${md,,}
-        cipher="$(../programs/cyassl hash -$2 -i $FILE -l $i)"
+        cipher="$(/home/cj/Documents/wolfSSL/Utility/programs/cyassl hash -$2 -i $FILE -l $i)"
         if test "$cipher" != "$md"; then
             fail=$[fail+1]
         fi
@@ -42,5 +42,5 @@ function hashtest() {
 }
 
 echo Testing...
-hashtest byte-hashes.sha1 sha 3
-hashtest byte-hashes.md5 md5 2
+hashtest /home/cj/Documents/wolfSSL/Utility/tests/byte-hashes.sha1 sha 3
+hashtest /home/cj/Documents/wolfSSL/Utility/tests/byte-hashes.md5 md5 2
