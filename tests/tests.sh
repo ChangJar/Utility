@@ -1,7 +1,7 @@
 #Test utility functionality
 #!/bin/bash
 
-CYASSL="home/cj/Documents/wolfSSL/Utility/programs/cyassl"
+CYASSL="/home/cj/Documents/wolfSSL/Utility/programs/cyassl"
 ENC="encrypt"
 DEC="decrypt"
 HASH="hash"
