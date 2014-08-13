@@ -17,7 +17,7 @@ SHA3="-sha384"
 SHA5="-sha512"
 BLAKE="-blake2b"
 zero=0
-OPTS="../../cyassl/cyassl/options.h"
+OPTS="/home/cj/Documents/wolfSSL/cyassl/cyassl/options.h"
 
 TIMER="$(date +%s)"
 
