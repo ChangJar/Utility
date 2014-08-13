@@ -19,8 +19,6 @@ then run make from the programs folder
 The Utility has many tools. Encryption, Decryption, Hashing, Benchmarking, with
 more to come.
 
-Various tests can also be performed on the toolkit via nistTest.sh and tests.sh
-
 The man pages provided with the utility also give a brief rundown of how to use
 each tool in the kit.
 
@@ -110,7 +108,11 @@ BENCHMARK
         -t time     time for each of the tests in seconds
         -all        runs all available tests
 
+TESTING
         
+    Various tests can also be performed on the toolkit via nistTest.sh and tests.sh
+    to perform these tests, simply change the 'PATH' variable in each one to lead
+    to where you extracted the Utility to.
 AUTHOR
     wolfSSL, Inc. (info@wolfssl.com)
     Copyright 2014 wolfSSL Inc.  All rights reserved.
