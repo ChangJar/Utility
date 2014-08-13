@@ -1419,8 +1419,8 @@ int Hash(char* in, char* len, char* out, char* alg, int size)
 #ifdef HAVE_BLAKE2
     Blake2b hash;               /* blake2b declaration */
 #endif
-    FILE*   inFile;              /* input file */
-    FILE*   outFile;             /* output file */
+    FILE*   inFile;             /* input file */
+    FILE*   outFile;            /* output file */
 
     byte*   input;              /* input buffer */
     byte*   output;             /* output buffer */
@@ -1442,6 +1442,7 @@ int Hash(char* in, char* len, char* out, char* alg, int size)
             length = strlen(in);
 
         input = malloc(length);
+        memset(input, 0, length);
         for (i = 0; i < length; i++) {
             /* copies text from in to input */
              if (i <= strlen(in))
@@ -1457,20 +1458,19 @@ int Hash(char* in, char* len, char* out, char* alg, int size)
         if (len != NULL) {
             /* if length is provided */
             length = atoi(len);
-            input = malloc(length);
         }
         else 
             length = leng;
         
-        input = malloc(length);
+        input = malloc(length+1);
+        memset(input, 0, length+1);
         if (input == NULL) {
             printf("Failed to create input buffer\n");
             return FATAL_ERROR;
         }
-        ret = fread(input, 1, leng, inFile);
+        ret = fread(input, 1, length, inFile);
         fclose(inFile);
     }
-
     /* hashes using accepted algorithm */
 #ifndef NO_MD5    
     if (strcmp(alg, "-md5") == 0) {
@@ -1519,7 +1519,7 @@ int Hash(char* in, char* len, char* out, char* alg, int size)
             }
         }
         else {
-            /*  if no output file*/
+            /*  if no output file */
             for (i = 0; i < size; i++) {
                 /* write hashed output to terminal */
                 printf("%02x", output[i]);
