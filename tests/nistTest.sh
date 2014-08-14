@@ -23,10 +23,16 @@ function hashtest() {
         else 
             break
         fi   
-#takes last 3 characters off
-        md="${md:0:-$3}"
+#takes last $3 characters off
+#        md="${md:0:-$3}"
+        COUNTER=0
+        while [ $COUNTER -lt $3 ]; do
+            md="${md%?}"
+            COUNTER=$[COUNTER+1]
+        done
 #converts to lowercase
-        md=${md,,}
+#        md=${md,,}
+        md="$(tr [A-Z] [a-z] <<< "$md")"
         cipher="$($PAT/Utility/programs/cyassl hash -$2 -i $FILE -l $i)"
         if test "$cipher" != "$md"; then
             fail=$[fail+1]

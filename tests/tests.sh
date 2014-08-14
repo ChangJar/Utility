@@ -1,6 +1,6 @@
 #Test utility functionality
 #!/bin/bash
-PAT="/home/cj/Documents/wolfSSL/"
+PAT="/home/cj/Documents/wolfSSL"
 CYASSL="$PAT/Utility/programs/cyassl"
 ENC="encrypt"
 DEC="decrypt"
@@ -19,8 +19,6 @@ BLAKE="-blake2b"
 zero=0
 OPTS="$PAT/cyassl/cyassl/options.h"
 
-TIMER="$(date +%s)"
-
 function crypto() {
     COUNTER=8
     SIZEF=1
@@ -37,17 +35,11 @@ function crypto() {
         echo $RANDF  >> $IN
             
         echo $CYASSL $ENC $1 size: $SIZEF bytes
-        T="$(date +%s%3N)"
         $CYASSL $ENC $1 -i $IN -o $OUT -k $KEY
         $CYASSL $DEC $1 -i $OUT -o $IN -k $KEY
-        T="$(($(date +%s%3N)-T))"
-        echo TIME: $T milliseconds
         echo $CYASSL $ENC $1 -i $RANDT
-        T="$(($(date +%s%3N)-T))"
         $CYASSL $ENC $1 -i $RANDT -o $OUT -k $KEY
         $CYASSL $DEC $1 -i $OUT -o $IN -k $KEY
-        T="$(($(date +%s%3N)-T))"
-        echo TIME: $T milliseconds
           
         rm -f $OUT
         rm -f $in
@@ -72,15 +64,9 @@ function hashing() {
         echo $RANDF >> $IN
  
         echo $CYASSL hash $1 size: $SIZEF bytes
-        T="$(date +%s%3N)"
         $CYASSL hash $1 -i $IN -o $OUT
-        T="$(($(date +%s%3N)-T))"
-        echo TIME: $T milliseconds
         echo $CYASSL hash $1 -i $RANDT
-        T="$(date +%s%3N)"
         $CYASSL hash $1 -i $RANDT -o $OUT
-        T="$(($(date +%s%3N)-T))"
-        echo TIME: $T milliseconds
 
         rm -f $IN
         rm -f $OUT
@@ -125,5 +111,3 @@ grep -q "HAVE_BLAKE2" $OPTS && if [[ $? -eq $zero ]]; then
     hashing $BLAKE
 fi
 $CYASSL benchmark -t 1 -all
-TIMER="$(($(date +%s)-TIMER))"
-echo TOTAL TEST TIME: $TIMER seconds
