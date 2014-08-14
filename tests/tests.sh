@@ -1,7 +1,7 @@
 #Test utility functionality
 #!/bin/bash
-PATH="/home/cj/Documents/wolfSSL/"
-CYASSL="$PATH/Utility/programs/cyassl"
+PAT="/home/cj/Documents/wolfSSL/"
+CYASSL="$PAT/Utility/programs/cyassl"
 ENC="encrypt"
 DEC="decrypt"
 HASH="hash"
@@ -17,7 +17,7 @@ SHA3="-sha384"
 SHA5="-sha512"
 BLAKE="-blake2b"
 zero=0
-OPTS="$PATH/cyassl/cyassl/options.h"
+OPTS="$PAT/cyassl/cyassl/options.h"
 
 TIMER="$(date +%s)"
 
@@ -90,7 +90,6 @@ function hashing() {
         let SIZET+=10
     done
 }
-make
 crypto $AES\128
 crypto $AES\192
 crypto $AES\256

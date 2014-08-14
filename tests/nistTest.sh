@@ -1,5 +1,5 @@
 #!/bin/bash
-PATH="/home/cj/Documents/wolfSSL/"
+PAT="/home/cj/Documents/wolfSSL/"
 GREEN='\e[0;32m'
 RED='\e[0;31m'
 NC='\e[0m'
@@ -15,11 +15,11 @@ function hashtest() {
     
     while read -r md; do
         if [[ $i -lt 10 ]]; then
-            FILE="$PATH/Utility/tests/byte000$i.dat"
+            FILE="$PAT/Utility/tests/byte000$i.dat"
         elif [[ $i -lt 100 ]]; then
-            FILE="$PATH/Utility/tests/byte00$i.dat"
+            FILE="$PAT/Utility/tests/byte00$i.dat"
         elif [[ $i -lt 1000 ]]; then
-            FILE="$PATH/Utility/tests/byte0$i.dat"
+            FILE="$PAT/Utility/tests/byte0$i.dat"
         else 
             break
         fi   
@@ -27,7 +27,7 @@ function hashtest() {
         md="${md:0:-$3}"
 #converts to lowercase
         md=${md,,}
-        cipher="$($PATH/Utility/programs/cyassl hash -$2 -i $FILE -l $i)"
+        cipher="$($PAT/Utility/programs/cyassl hash -$2 -i $FILE -l $i)"
         if test "$cipher" != "$md"; then
             fail=$[fail+1]
         fi
@@ -43,5 +43,5 @@ function hashtest() {
 }
 
 echo Testing...
-hashtest $PATH/Utility/tests/byte-hashes.sha1 sha 3
-hashtest $PATH/Utility/tests/byte-hashes.md5 md5 2
+hashtest $PAT/Utility/tests/byte-hashes.sha1 sha 3
+hashtest $PAT/Utility/tests/byte-hashes.md5 md5 2
