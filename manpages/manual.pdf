@@ -111,7 +111,7 @@ BENCHMARK
 TESTING
         
     Various tests can also be performed on the toolkit via nistTest.sh and tests.sh
-    to perform these tests, simply change the 'PATH' variable in each one to lead
+    to perform these tests, simply change the 'PAT' variable in each one to lead
     to where you extracted the Utility to.
 AUTHOR
     wolfSSL, Inc. (info@wolfssl.com)
